@@ -29,7 +29,7 @@ using namespace std;
 namespace alvar {
 using namespace std;
 
-Line::Line(float params[4])
+Line::Line(cv::Vec4f params)
 {
 	c.x = params[2];
 	c.y = params[3];

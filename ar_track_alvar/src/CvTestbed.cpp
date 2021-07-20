@@ -135,22 +135,24 @@ size_t CvTestbed::SetImage(const char *title, cv::Mat *ipl, bool release_at_exit
 	// if (images[index].release_at_exit) {
 	// 	cvReleaseImage(&(images[index]));
 	// }
-	images[index] = ipl;
+	images[index].ipl = ipl;
 	// images[index].release_at_exit = release_at_exit;
 	return index;
 }
 
 cv::Mat *CvTestbed::CreateImage(const char *title, cv::Size size, int type) {
-	cv::Mat *ipl=cv::Mat::zeros((size,type);
+	cv::Mat temp  = cv::Mat::zeros(size,type);
+	cv::Mat *ipl  = &temp;	
 	if (!ipl) return NULL;
 	SetImage(title, ipl, true);
 	return ipl;
 }
 
 cv::Mat *CvTestbed::CreateImageWithProto(const char *title, cv::Mat *proto, int depth /* =0 */, int channels /* =0 */) {
-	cv::Mat *ipl= cv::Mat::zeros(cv::Size(proto->cols, proto->rows), proto.type);
+	cv::Mat temp = cv::Mat::zeros(cv::Size(proto->cols, proto->rows), proto->type());
+	cv::Mat *ipl= &temp;
 	if (!ipl) return NULL;
-	ipl->origin = proto->origin;
+	//ipl->origin = proto->origin;
 	SetImage(title, ipl, true);
 	return ipl;
 }
@@ -158,7 +160,7 @@ cv::Mat *CvTestbed::CreateImageWithProto(const char *title, cv::Mat *proto, int 
 cv::Mat *CvTestbed::GetImage(size_t index) {
 	if (index < 0) return NULL;
 	if (index >= images.size()) return NULL;
-	return images[index];
+	return images[index].ipl;
 }
 
 size_t CvTestbed::GetImageIndex(const char *title) {
