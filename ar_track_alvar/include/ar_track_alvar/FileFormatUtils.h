@@ -32,7 +32,9 @@
  */
 
 #include "Alvar.h"
-#include "cv.h"
+#include <opencv2/core/core.hpp>
+#include <opencv2/core/core_c.h>
+#include <opencv2/opencv.hpp>
 #include "tinyxml.h"
 
 namespace alvar {

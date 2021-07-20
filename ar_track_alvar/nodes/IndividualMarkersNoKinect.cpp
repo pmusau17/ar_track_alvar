@@ -35,14 +35,15 @@
 */
 
 
-#include <std_msgs/Bool.h>
+#include <std_msgs/msg/bool.hpp>
 #include "ar_track_alvar/CvTestbed.h"
 #include "ar_track_alvar/MarkerDetector.h"
 #include "ar_track_alvar/Shared.h"
 #include <cv_bridge/cv_bridge.h>
 #include <ar_track_alvar_msgs/AlvarMarker.h>
 #include <ar_track_alvar_msgs/AlvarMarkers.h>
-#include <tf/transform_listener.h>
+#include "tf2_ros/buffer.h"
+#include "tf2_ros/transform_listener.h"
 #include <tf/transform_broadcaster.h>
 #include <sensor_msgs/image_encodings.h>
 #include <dynamic_reconfigure/server.h>
@@ -58,8 +59,8 @@ image_transport::Subscriber cam_sub_;
 ros::Publisher arMarkerPub_;
 ros::Publisher rvizMarkerPub_;
 ar_track_alvar_msgs::AlvarMarkers arPoseMarkers_;
-visualization_msgs::Marker rvizMarker_;
-tf::TransformListener *tf_listener;
+visualization_msgs::msg::Marker rvizMarker_;
+tf2_ros::TransformListener *tf_listener;
 tf::TransformBroadcaster *tf_broadcaster;
 MarkerDetector<MarkerData> marker_detector;
 
@@ -75,21 +76,21 @@ std::string output_frame;
 int marker_resolution = 5; // default marker resolution
 int marker_margin = 2; // default marker margin
 
-void getCapCallback (const sensor_msgs::ImageConstPtr & image_msg);
+void getCapCallback (const sensor_msgs::msg::Image::ConstSharedPtr & image_msg);
 
 
-void getCapCallback (const sensor_msgs::ImageConstPtr & image_msg)
+void getCapCallback (const sensor_msgs::msg::Image::ConstSharedPtr & image_msg)
 {
     //If we've already gotten the cam info, then go ahead
 	if(cam->getCamInfo_){
 		try{
-			tf::StampedTransform CamToOutput;
+			tf2::StampedTransform CamToOutput;
     			try{
-					tf_listener->waitForTransform(output_frame, image_msg->header.frame_id, image_msg->header.stamp, ros::Duration(1.0));
+					tf_listener->waitForTransform(output_frame, image_msg->header.frame_id, image_msg->header.stamp, rclcpp::Duration(1.0));
 					tf_listener->lookupTransform(output_frame, image_msg->header.frame_id, image_msg->header.stamp, CamToOutput);
    				}
     			catch (tf::TransformException ex){
-      				ROS_ERROR("%s",ex.what());
+      				RCLCPP_ERROR(rclcpp::get_logger("ArTrackAlvar"), "%s",ex.what());
     			}
 
 
@@ -126,7 +127,7 @@ void getCapCallback (const sensor_msgs::ImageConstPtr & image_msg)
                 tf::Transform markerPose = t * m; // marker pose in the camera frame
 
                 tf::Vector3 z_axis_cam = tf::Transform(rotation, tf::Vector3(0,0,0)) * tf::Vector3(0, 0, 1);
-//                ROS_INFO("%02i Z in cam frame: %f %f %f",id, z_axis_cam.x(), z_axis_cam.y(), z_axis_cam.z());
+//                RCLCPP_INFO(rclcpp::get_logger("ArTrackAlvar"), "%02i Z in cam frame: %f %f %f",id, z_axis_cam.x(), z_axis_cam.y(), z_axis_cam.z());
                 /// as we can't see through markers, this one is false positive detection
                 if (z_axis_cam.z() > 0)
                 {
@@ -139,7 +140,7 @@ void getCapCallback (const sensor_msgs::ImageConstPtr & image_msg)
 				out << id;
 				std::string id_string = out.str();
 				markerFrame += id_string;
-				tf::StampedTransform camToMarker (t, image_msg->header.stamp, image_msg->header.frame_id, markerFrame.c_str());
+				tf2::StampedTransform camToMarker (t, image_msg->header.stamp, image_msg->header.frame_id, markerFrame.c_str());
     			tf_broadcaster->sendTransform(camToMarker);
 
 				//Create the rviz visualization messages
@@ -152,8 +153,8 @@ void getCapCallback (const sensor_msgs::ImageConstPtr & image_msg)
 				rvizMarker_.scale.y = 1.0 * marker_size/100.0;
 				rvizMarker_.scale.z = 0.2 * marker_size/100.0;
 				rvizMarker_.ns = "basic_shapes";
-				rvizMarker_.type = visualization_msgs::Marker::CUBE;
-				rvizMarker_.action = visualization_msgs::Marker::ADD;
+				rvizMarker_.type = visualization_msgs::msg::Marker::CUBE;
+				rvizMarker_.action = visualization_msgs::msg::Marker::ADD;
 				switch (id)
 				{
 				  case 0:
@@ -193,7 +194,7 @@ void getCapCallback (const sensor_msgs::ImageConstPtr & image_msg)
 				    rvizMarker_.color.a = 1.0;
 				    break;
 				}
-				rvizMarker_.lifetime = ros::Duration (1.0);
+				rvizMarker_.lifetime = rclcpp::Duration (1.0);
 				rvizMarkerPub_.publish (rvizMarker_);
 
 				//Get the pose of the tag in the camera frame, then the output frame (usually torso)
@@ -217,7 +218,7 @@ void getCapCallback (const sensor_msgs::ImageConstPtr & image_msg)
 
 void configCallback(ar_track_alvar::ParamsConfig &config, uint32_t level)
 {
-  ROS_INFO("AR tracker reconfigured: %s %.2f %.2f %.2f %.2f", config.enabled ? "ENABLED" : "DISABLED",
+  RCLCPP_INFO(rclcpp::get_logger("ArTrackAlvar"), "AR tracker reconfigured: %s %.2f %.2f %.2f %.2f", config.enabled ? "ENABLED" : "DISABLED",
            config.max_frequency, config.marker_size, config.max_new_marker_error, config.max_track_error);
 
   enableSwitched = enabled != config.enabled;
@@ -229,7 +230,7 @@ void configCallback(ar_track_alvar::ParamsConfig &config, uint32_t level)
   max_track_error = config.max_track_error;
 }
 
-void enableCallback(const std_msgs::BoolConstPtr& msg)
+void enableCallback(const std_msgs::msg::Bool::ConstSharedPtr& msg)
 {
     enableSwitched = enabled != msg->data;
     enabled = msg->data;
@@ -238,10 +239,10 @@ void enableCallback(const std_msgs::BoolConstPtr& msg)
 int main(int argc, char *argv[])
 {
 	ros::init (argc, argv, "marker_detect");
-	ros::NodeHandle n, pn("~");
+	rclcpp::Node n, pn("~");
 
   if(argc > 1) {
-    ROS_WARN("Command line arguments are deprecated. Consider using ROS parameters and remappings.");
+    RCLCPP_WARN(rclcpp::get_logger("ArTrackAlvar"), "Command line arguments are deprecated. Consider using ROS parameters and remappings.");
 
     if(argc < 7){
       std::cout << std::endl;
@@ -279,7 +280,7 @@ int main(int argc, char *argv[])
     pn.param("marker_resolution", marker_resolution, 5);
     pn.param("marker_margin", marker_margin, 2);
     if (!pn.getParam("output_frame", output_frame)) {
-      ROS_ERROR("Param 'output_frame' has to be set.");
+      RCLCPP_ERROR(rclcpp::get_logger("ArTrackAlvar"), "Param 'output_frame' has to be set.");
       exit(EXIT_FAILURE);
     }
 
@@ -296,10 +297,10 @@ int main(int argc, char *argv[])
 	marker_detector.SetMarkerSize(marker_size, marker_resolution, marker_margin);
 
 	cam = new Camera(n, cam_info_topic);
-	tf_listener = new tf::TransformListener(n);
+	tf_listener = new tf2_ros::TransformListener(n);
 	tf_broadcaster = new tf::TransformBroadcaster();
 	arMarkerPub_ = n.advertise < ar_track_alvar_msgs::AlvarMarkers > ("ar_pose_marker", 0);
-	rvizMarkerPub_ = n.advertise < visualization_msgs::Marker > ("visualization_marker", 0);
+	rvizMarkerPub_ = n.advertise < visualization_msgs::msg::Marker > ("visualization_marker", 0);
 
   // Prepare dynamic reconfiguration
   dynamic_reconfigure::Server < ar_track_alvar::ParamsConfig > server;
@@ -310,29 +311,29 @@ int main(int argc, char *argv[])
 
 	//Give tf a chance to catch up before the camera callback starts asking for transforms
   // It will also reconfigure parameters for the first time, setting the default values
-	ros::Duration(1.0).sleep();
-	ros::spinOnce();
+	rclcpp::Duration(1.0).sleep();
+	rclcpp::spin_some(node);
 
 	image_transport::ImageTransport it_(n);
 
   // Run at the configured rate, discarding pointcloud msgs if necessary
-  ros::Rate rate(max_frequency);
+  rclcpp::Rate rate(max_frequency);
 
   /// Subscriber for enable-topic so that a user can turn off the detection if it is not used without
   /// having to use the reconfigure where he has to know all parameters
-  ros::Subscriber enable_sub_ = pn.subscribe("enable_detection", 1, &enableCallback);
+  auto enable_sub_ = pn.subscribe("enable_detection", 1, &enableCallback);
 
   enableSwitched = true;
-  while (ros::ok())
+  while (rclcpp::ok())
   {
-    ros::spinOnce();
+    rclcpp::spin_some(node);
     rate.sleep();
 
-    if (std::abs((rate.expectedCycleTime() - ros::Duration(1.0 / max_frequency)).toSec()) > 0.001)
+    if (std::abs((rate.expectedCycleTime() - rclcpp::Duration(1.0 / max_frequency)).toSec()) > 0.001)
     {
       // Change rate dynamically; if must be above 0, as 0 will provoke a segfault on next spinOnce
-      ROS_DEBUG("Changing frequency from %.2f to %.2f", 1.0 / rate.expectedCycleTime().toSec(), max_frequency);
-      rate = ros::Rate(max_frequency);
+      RCLCPP_DEBUG(rclcpp::get_logger("ArTrackAlvar"), "Changing frequency from %.2f to %.2f", 1.0 / rate.expectedCycleTime().toSec(), max_frequency);
+      rate = rclcpp::Rate(max_frequency);
     }
 
     if (enableSwitched)

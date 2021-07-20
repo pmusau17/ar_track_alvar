@@ -31,11 +31,12 @@
 
 
 
-//#include <ros/ros.h>
+//#include "rclcpp/rclcpp.hpp"
 #include <Eigen/Core>
 #include <ar_track_alvar/filter/kinect_filtering.h>
-#include <tf/tf.h>
-#include <tf/transform_datatypes.h>
+// #include <tf2/tf.h>
+#include <tf2/LinearMath/Quaternion.h>
+#include <tf2/transform_datatypes.h>
 
 
 namespace ar_track_alvar
@@ -78,14 +79,14 @@ namespace ar_track_alvar
   ARCloud::Ptr filterCloud (const ARCloud& cloud, const vector<cv::Point, Eigen::aligned_allocator<cv::Point> >& pixels)
   {
     ARCloud::Ptr out(new ARCloud());
-    //ROS_INFO("  Filtering %zu pixels", pixels.size());
+    //RCLCPP_INFO(rclcpp::get_logger("ArTrackAlvar"), "  Filtering %zu pixels", pixels.size());
     //for (const cv::Point& p : pixels)
     for(size_t i=0; i<pixels.size(); i++)
       {
 	const cv::Point& p = pixels[i];
 	const ARPoint& pt = cloud(p.x, p.y);
 	if (std::isnan(pt.x) || std::isnan(pt.y) || std::isnan(pt.z)){
-	  //ROS_INFO("    Skipping (%.4f, %.4f, %.4f)", pt.x, pt.y, pt.z);
+	  //RCLCPP_INFO(rclcpp::get_logger("ArTrackAlvar"), "    Skipping (%.4f, %.4f, %.4f)", pt.x, pt.y, pt.z);
 	}
 	else
 	  out->points.push_back(pt);
@@ -93,9 +94,9 @@ namespace ar_track_alvar
     return out;
   }
 
-  gm::Point centroid (const ARCloud& points)
+  gm::msg::Point centroid (const ARCloud& points)
   {
-    gm::Point sum;
+    gm::msg::Point sum;
     sum.x = 0;
     sum.y = 0;
     sum.z = 0;
@@ -107,7 +108,7 @@ namespace ar_track_alvar
 	sum.z += points[i].z;
       }
   
-    gm::Point center;
+    gm::msg::Point center;
     const size_t n = points.size();
     center.x = sum.x/n;
     center.y = sum.y/n;
@@ -115,11 +116,11 @@ namespace ar_track_alvar
     return center;
   }
 
-  // Helper function to construct a geometry_msgs::Quaternion
+  // Helper function to construct a geometry_msgs::msg::Quaternion
   inline
-  gm::Quaternion makeQuaternion (double x, double y, double z, double w)
+  gm::msg::Quaternion makeQuaternion (double x, double y, double z, double w)
   {
-    gm::Quaternion q;
+    gm::msg::Quaternion q;
     q.x = x;
     q.y = y;
     q.z = z;
@@ -145,14 +146,14 @@ namespace ar_track_alvar
   }
 
   // Project point onto plane
-  tf::Vector3 project (const ARPoint& p, const double a, const double b,
+  tf2::Vector3 project (const ARPoint& p, const double a, const double b,
 		     const double c, const double d)
   {
     const double t = a*p.x + b*p.y + c*p.z + d;
-    return tf::Vector3(p.x-t*a, p.y-t*b, p.z-t*c);
+    return tf2::Vector3(p.x-t*a, p.y-t*b, p.z-t*c);
   }
 
-  ostream& operator<< (ostream& str, const tf::Matrix3x3& m)
+  ostream& operator<< (ostream& str, const tf2::Matrix3x3& m)
   {
     str << "[" << m[0][0] << ", " << m[0][1] << ", " << m[0][2] << "; "
 	<< m[1][0] << ", " << m[1][1] << ", " << m[1][2] << "; "
@@ -160,14 +161,14 @@ namespace ar_track_alvar
     return str;
   }
 
-  ostream& operator<< (ostream& str, const tf::Quaternion& q)
+  ostream& operator<< (ostream& str, const tf2::Quaternion& q)
   {
     str << "[(" << q.x() << ", " << q.y() << ", " << q.z() <<
       "), " << q.w() << "]";
     return str;
   }
 
-  ostream& operator<< (ostream& str, const tf::Vector3& v)
+  ostream& operator<< (ostream& str, const tf2::Vector3& v)
   {
     str << "(" << v.x() << ", " << v.y() << ", " << v.z() << ")";
     return str;
@@ -176,30 +177,30 @@ namespace ar_track_alvar
   int extractFrame (const pcl::ModelCoefficients& coeffs,
 		    const ARPoint& p1, const ARPoint& p2,
 		    const ARPoint& p3, const ARPoint& p4,
-            tf::Matrix3x3 &retmat)
+            tf2::Matrix3x3 &retmat)
   {
     // Get plane coeffs and project points onto the plane
     double a=0, b=0, c=0, d=0;
     if(getCoeffs(coeffs, &a, &b, &c, &d) < 0)
       return -1;
   
-    const tf::Vector3 q1 = project(p1, a, b, c, d);
-    const tf::Vector3 q2 = project(p2, a, b, c, d);
-    const tf::Vector3 q3 = project(p3, a, b, c, d);
-    const tf::Vector3 q4 = project(p4, a, b, c, d);
+    const tf2::Vector3 q1 = project(p1, a, b, c, d);
+    const tf2::Vector3 q2 = project(p2, a, b, c, d);
+    const tf2::Vector3 q3 = project(p3, a, b, c, d);
+    const tf2::Vector3 q4 = project(p4, a, b, c, d);
   
     // Make sure points aren't the same so things are well-defined
     if((q2-q1).length() < 1e-3)
       return -1;
   
     // (inverse) matrix with the given properties
-    const tf::Vector3 v = (q2-q1).normalized();
-    const tf::Vector3 n(a, b, c);
-    const tf::Vector3 w = -v.cross(n);
-    tf::Matrix3x3 m(v[0], v[1], v[2], w[0], w[1], w[2], n[0], n[1], n[2]);
+    const tf2::Vector3 v = (q2-q1).normalized();
+    const tf2::Vector3 n(a, b, c);
+    const tf2::Vector3 w = -v.cross(n);
+    tf2::Matrix3x3 m(v[0], v[1], v[2], w[0], w[1], w[2], n[0], n[1], n[2]);
   
     // Possibly flip things based on third point
-    const tf::Vector3 diff = (q4-q3).normalized();
+    const tf2::Vector3 diff = (q4-q3).normalized();
     //ROS_INFO_STREAM("w = " << w << " and d = " << diff);
     if (w.dot(diff)<0)
       {
@@ -216,12 +217,12 @@ namespace ar_track_alvar
   }
 
 
-  int getQuaternion (const tf::Matrix3x3& m, tf::Quaternion &retQ)
+  int getQuaternion (const tf2::Matrix3x3& m, tf2::Quaternion &retQ)
   {
     if(m.determinant() <= 0)
       return -1;
     
-    //tfScalar y=0, p=0, r=0;
+    //tf2Scalar y=0, p=0, r=0;
     //m.getEulerZYX(y, p, r);
     //retQ.setEulerZYX(y, p, r);
 
@@ -235,11 +236,11 @@ namespace ar_track_alvar
     Eigen::Quaternion<float> eig_quat(eig_m);
     
     // Translate back to bullet
-    tfScalar ex = eig_quat.x();
-    tfScalar ey = eig_quat.y();
-    tfScalar ez = eig_quat.z();
-    tfScalar ew = eig_quat.w();
-    tf::Quaternion quat(ex,ey,ez,ew);
+    tf2Scalar ex = eig_quat.x();
+    tf2Scalar ey = eig_quat.y();
+    tf2Scalar ez = eig_quat.z();
+    tf2Scalar ew = eig_quat.w();
+    tf2::Quaternion quat(ex,ey,ez,ew);
     retQ = quat.normalized();
     
     return 0;
@@ -249,12 +250,12 @@ namespace ar_track_alvar
   int extractOrientation (const pcl::ModelCoefficients& coeffs,
 			  const ARPoint& p1, const ARPoint& p2,
 			  const ARPoint& p3, const ARPoint& p4,
-			  gm::Quaternion &retQ)
+			  gm::msg::Quaternion &retQ)
   {
-    tf::Matrix3x3 m;
+    tf2::Matrix3x3 m;
     if(extractFrame(coeffs, p1, p2, p3, p4, m) < 0)
       return -1;
-    tf::Quaternion q;
+    tf2::Quaternion q;
     if(getQuaternion(m,q) < 0)
       return -1;
     retQ.x = q.x();

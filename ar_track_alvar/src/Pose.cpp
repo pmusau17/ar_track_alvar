@@ -22,6 +22,7 @@
  */
 
 #include "ar_track_alvar/Pose.h"
+#include "opencv2/core/types_c.h"
 
 using namespace std;
 

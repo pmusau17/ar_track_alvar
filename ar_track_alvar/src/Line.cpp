@@ -22,6 +22,7 @@
  */
 
 #include "ar_track_alvar/Line.h"
+#include <opencv2/imgproc.hpp>
 
 using namespace std;
 
@@ -44,7 +45,7 @@ void FitLines(vector<Line>& lines)
 int FitLines(vector<Line> &lines,
 			const vector<int>& corners,
 			const vector<PointInt >& edge,
-			IplImage *grey /*=0*/) // grey image for future sub pixel accuracy
+			cv::Mat *grey /*=0*/) // grey image for future sub pixel accuracy
 {
 	lines.clear();
 	for(unsigned j = 0; j < corners.size(); ++j)
@@ -71,7 +72,7 @@ int FitLines(vector<Line> &lines,
 		double* data = new double[2*len];
 
 		// OpenCV routine... 
-		CvMat* line_data = cvCreateMat(1, len, CV_32FC2);
+		cv::Mat line_data = cv::Mat(1, len, CV_32FC2);
 		for(int i = 0; i < len; ++i)
 		{
 			ind = i + start;
@@ -80,15 +81,16 @@ int FitLines(vector<Line> &lines,
 
 			double px = double(edge[ind].x);
 			double py = double(edge[ind].y);
-			CV_MAT_ELEM(*line_data, CvPoint2D32f, 0, i) = cvPoint2D32f(px, py);
+			line_data.at<cv::Point2f>(0,i) =  cv::Point2f(px, py);
 		}
 
-		float params[4] = {0};
-		cvFitLine(line_data, CV_DIST_L2, 0, 0.01, 0.01, params);
+		//float params[4] = {0};
+		cv::Vec4f params;
+		cv::fitLine(line_data, params, CV_DIFF_L2, 0, 0.01, 0.01);
 		lines.push_back(Line(params));
 
 		delete [] data;
-		cvReleaseMat(&line_data);
+		//cvReleaseMat(&line_data);
 
 	}
 

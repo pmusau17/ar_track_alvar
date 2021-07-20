@@ -39,20 +39,21 @@
 #include "ar_track_alvar/MultiMarkerInitializer.h"
 #include "ar_track_alvar/Shared.h"
 #include <cv_bridge/cv_bridge.h>
-#include <ar_track_alvar_msgs/AlvarMarker.h>
-#include <ar_track_alvar_msgs/AlvarMarkers.h>
-#include <tf/transform_listener.h>
+#include <ar_track_alvar_msgs/msg/AlvarMarker.hpp>
+#include <ar_track_alvar_msgs/msg/AlvarMarkers.hpp>
+#include "tf2_ros/buffer.h"
+#include "tf2_ros/transform_listener.h"
 #include <tf/transform_broadcaster.h>
 
-#include <sensor_msgs/PointCloud2.h>
+#include <sensor_msgs/msg/point_cloud2.hpp>
 #include <pcl_conversions/pcl_conversions.h>
 #include <pcl/point_types.h>
 #include <pcl/registration/icp.h>
 #include <pcl/registration/registration.h>
 
-#include <geometry_msgs/PoseStamped.h>
-#include <sensor_msgs/image_encodings.h>
-#include <ros/ros.h>
+#include <geometry_msgs/msg/pose_stamped.hpp>
+#include <sensor_msgs/msg/image_encodings.hpp>
+#include "rclcpp/rclcpp.hpp"
 #include <pcl/ModelCoefficients.h>
 #include <pcl/point_types.h>
 #include <pcl/sample_consensus/method_types.h>
@@ -85,12 +86,16 @@ using boost::make_shared;
 Camera *cam;
 cv_bridge::CvImagePtr cv_ptr_;
 image_transport::Subscriber cam_sub_;
-ros::Subscriber cloud_sub_;
-ros::Publisher arMarkerPub_;
-ros::Publisher rvizMarkerPub_;
-ros::Publisher rvizMarkerPub2_;
-ar_track_alvar_msgs::AlvarMarkers arPoseMarkers_;
-tf::TransformListener *tf_listener;
+
+rclcpp::Publisher<ar_track_alvar_msgs::msg::AlvarMarkers>::SharedPtr arMarkerPub_;
+rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr rvizMarkerPub_;
+rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr rvizMarkerPub2_;
+
+
+rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr cloud_sub_;
+
+ar_track_alvar_msgs::msg::AlvarMarkers arPoseMarkers_;
+tf2_ros::TransformListener *tf_listener;
 tf::TransformBroadcaster *tf_broadcaster;
 MarkerDetector<MarkerData> marker_detector;
 MultiMarkerBundle **multi_marker_bundles=NULL;
@@ -115,10 +120,10 @@ int n_bundles = 0;
 //Debugging utility function
 void draw3dPoints(ARCloud::Ptr cloud, string frame, int color, int id, double rad)
 {
-  visualization_msgs::Marker rvizMarker;
+  visualization_msgs::msg::Marker rvizMarker;
 
   rvizMarker.header.frame_id = frame;
-  rvizMarker.header.stamp = ros::Time::now(); 
+  rvizMarker.header.stamp = rclcpp::Time::now(); 
   rvizMarker.id = id;
   rvizMarker.ns = "3dpts";
   
@@ -126,8 +131,8 @@ void draw3dPoints(ARCloud::Ptr cloud, string frame, int color, int id, double ra
   rvizMarker.scale.y = rad;
   rvizMarker.scale.z = rad;
   
-  rvizMarker.type = visualization_msgs::Marker::SPHERE_LIST;
-  rvizMarker.action = visualization_msgs::Marker::ADD;
+  rvizMarker.type = visualization_msgs::msg::Marker::SPHERE_LIST;
+  rvizMarker.action = visualization_msgs::msg::Marker::ADD;
   
   if(color==1){
     rvizMarker.color.r = 0.0f;
@@ -156,17 +161,17 @@ void draw3dPoints(ARCloud::Ptr cloud, string frame, int color, int id, double ra
     rvizMarker.points.push_back(p);
   }
   
-  rvizMarker.lifetime = ros::Duration (1.0);
+  rvizMarker.lifetime = rclcpp::Duration (1.0);
   rvizMarkerPub2_.publish (rvizMarker);
 }
 
 
 void drawArrow(gm::Point start, tf::Matrix3x3 mat, string frame, int color, int id)
 {
-  visualization_msgs::Marker rvizMarker;
+  visualization_msgs::msg::Marker rvizMarker;
   
   rvizMarker.header.frame_id = frame;
-  rvizMarker.header.stamp = ros::Time::now(); 
+  rvizMarker.header.stamp = rclcpp::Time::now(); 
   rvizMarker.id = id;
   rvizMarker.ns = "arrow";
   
@@ -174,8 +179,8 @@ void drawArrow(gm::Point start, tf::Matrix3x3 mat, string frame, int color, int 
   rvizMarker.scale.y = 0.01;
   rvizMarker.scale.z = 0.1;
   
-  rvizMarker.type = visualization_msgs::Marker::ARROW;
-  rvizMarker.action = visualization_msgs::Marker::ADD;
+  rvizMarker.type = visualization_msgs::msg::Marker::ARROW;
+  rvizMarker.action = visualization_msgs::msg::Marker::ADD;
   
   for(int i=0; i<3; i++){
     rvizMarker.points.clear();	
@@ -186,7 +191,7 @@ void drawArrow(gm::Point start, tf::Matrix3x3 mat, string frame, int color, int 
     end.z = start.z + mat[2][i];
     rvizMarker.points.push_back(end);
     rvizMarker.id += 10*i;
-    rvizMarker.lifetime = ros::Duration (1.0);
+    rvizMarker.lifetime = rclcpp::Duration (1.0);
 
     if(color==1){
       rvizMarker.color.r = 1.0f;
@@ -261,11 +266,11 @@ int InferCorners(const ARCloud &cloud, MultiMarkerBundle &master, ARCloud &bund_
             p.point.z = corner_coord.z()/100.0;
             
             try{
-                tf_listener->waitForTransform(cloud.header.frame_id, marker_frame, ros::Time(0), ros::Duration(0.1));
+                tf_listener->waitForTransform(cloud.header.frame_id, marker_frame, rclcpp::Time(0), rclcpp::Duration(0.1));
                 tf_listener->transformPoint(cloud.header.frame_id, p, output_p);			
             }
             catch (tf::TransformException ex){
-                ROS_ERROR("ERROR InferCorners: %s",ex.what());
+                RCLCPP_ERROR(rclcpp::get_logger("ArTrackAlvar"), "ERROR InferCorners: %s",ex.what());
                 return -1;
             }
 
@@ -424,7 +429,7 @@ void GetMultiMarkerPoses(IplImage *image, ARCloud &cloud) {
 	    }
 	  }
 	  else
-	    ROS_ERROR("FindMarkerBundles: Bad Orientation: %i for ID: %i", ori, id);
+	    RCLCPP_ERROR(rclcpp::get_logger("ArTrackAlvar"), "FindMarkerBundles: Bad Orientation: %i for ID: %i", ori, id);
 
 	  //Check if we have spotted a master tag
 	  int master_ind = -1;
@@ -501,7 +506,7 @@ void GetMultiMarkerPoses(IplImage *image, ARCloud &cloud) {
 
 
 // Given the pose of a marker, builds the appropriate ROS messages for later publishing 
-void makeMarkerMsgs(int type, int id, Pose &p, sensor_msgs::ImageConstPtr image_msg, tf::StampedTransform &CamToOutput, visualization_msgs::Marker *rvizMarker, ar_track_alvar_msgs::AlvarMarker *ar_pose_marker, int confidence){
+void makeMarkerMsgs(int type, int id, Pose &p, sensor_msgs::msg::Image::ConstSharedPtr image_msg, tf2::StampedTransform &CamToOutput, visualization_msgs::msg::Marker *rvizMarker, ar_track_alvar_msgs::AlvarMarker *ar_pose_marker, int confidence){
   double px,py,pz,qx,qy,qz,qw;
 	
   px = p.translation[0]/100.0;
@@ -527,7 +532,7 @@ void makeMarkerMsgs(int type, int id, Pose &p, sensor_msgs::ImageConstPtr image_
   out << id;
   std::string id_string = out.str();
   markerFrame += id_string;
-  tf::StampedTransform camToMarker (t, image_msg->header.stamp, image_msg->header.frame_id, markerFrame.c_str());
+  tf2::StampedTransform camToMarker (t, image_msg->header.stamp, image_msg->header.frame_id, markerFrame.c_str());
   tf_broadcaster->sendTransform(camToMarker);
 
   //Create the rviz visualization message
@@ -546,8 +551,8 @@ void makeMarkerMsgs(int type, int id, Pose &p, sensor_msgs::ImageConstPtr image_
     rvizMarker->ns = "basic_shapes";
 
 
-  rvizMarker->type = visualization_msgs::Marker::CUBE;
-  rvizMarker->action = visualization_msgs::Marker::ADD;
+  rvizMarker->type = visualization_msgs::msg::Marker::CUBE;
+  rvizMarker->action = visualization_msgs::msg::Marker::ADD;
 
   //Determine a color and opacity, based on marker type
   if(type==MAIN_MARKER){
@@ -569,7 +574,7 @@ void makeMarkerMsgs(int type, int id, Pose &p, sensor_msgs::ImageConstPtr image_
     rvizMarker->color.a = 0.5;
   }
 
-  rvizMarker->lifetime = ros::Duration (0.1);
+  rvizMarker->lifetime = rclcpp::Duration (0.1);
 
   // Only publish the pose of the master tag in each bundle, since that's all we really care about aside from visualization 
   if(type==MAIN_MARKER){
@@ -590,26 +595,26 @@ void makeMarkerMsgs(int type, int id, Pose &p, sensor_msgs::ImageConstPtr image_
 
 
 //Callback to handle getting kinect point clouds and processing them
-void getPointCloudCallback (const sensor_msgs::PointCloud2ConstPtr &msg)
+void getPointCloudCallback (const sensor_msgs::msg::PointCloud2::ConstSharedPtr &msg)
 {
-  sensor_msgs::ImagePtr image_msg(new sensor_msgs::Image);
+  sensor_msgs::msg::ImagePtr image_msg(new sensor_msgs::msg::Image);
 
   //If we've already gotten the cam info, then go ahead
   if(cam->getCamInfo_){
     try{
       //Get the transformation from the Camera to the output frame for this image capture
-      tf::StampedTransform CamToOutput;
+      tf2::StampedTransform CamToOutput;
       try{
-	tf_listener->waitForTransform(output_frame, msg->header.frame_id, msg->header.stamp, ros::Duration(1.0));
+	tf_listener->waitForTransform(output_frame, msg->header.frame_id, msg->header.stamp, rclcpp::Duration(1.0));
 	tf_listener->lookupTransform(output_frame, msg->header.frame_id, msg->header.stamp, CamToOutput);
       }
       catch (tf::TransformException ex){
-	ROS_ERROR("%s",ex.what());
+	RCLCPP_ERROR(rclcpp::get_logger("ArTrackAlvar"), "%s",ex.what());
       }
 
       //Init and clear visualization markers
-      visualization_msgs::Marker rvizMarker;
-      ar_track_alvar_msgs::AlvarMarker ar_pose_marker;
+      visualization_msgs::msg::Marker rvizMarker;
+      ar_track_alvar_msgs::msg::AlvarMarker ar_pose_marker;
       arPoseMarkers_.markers.clear ();
 
       //Convert cloud to PCL 
@@ -768,8 +773,9 @@ int calcAndSaveMasterCoords(MultiMarkerBundle &master)
 
 int main(int argc, char *argv[])
 {
-  ros::init (argc, argv, "marker_detect");
-  ros::NodeHandle n;
+  
+  rclcpp::init(argc, argv);
+  auto node = rclcpp::Node::make_shared("marker_detect");
 
   if(argc < 9){
     std::cout << std::endl;
@@ -823,21 +829,24 @@ int main(int argc, char *argv[])
 
   // Set up camera, listeners, and broadcasters
   cam = new Camera(n, cam_info_topic);
-  tf_listener = new tf::TransformListener(n);
+  tf_listener = new tf2_ros::TransformListener(n);
   tf_broadcaster = new tf::TransformBroadcaster();
-  arMarkerPub_ = n.advertise < ar_track_alvar_msgs::AlvarMarkers > ("ar_pose_marker", 0);
-  rvizMarkerPub_ = n.advertise < visualization_msgs::Marker > ("visualization_marker", 0);
-  rvizMarkerPub2_ = n.advertise < visualization_msgs::Marker > ("ARmarker_points", 0);
+
+  arMarkerPub_ = node->create_publisher<ar_track_alvar_msgs::msg::AlvarMarkers> ("ar_pose_marker", 0);
+  rvizMarkerPub_ = node->create_publisher<visualization_msgs::msg::Marker> ("visualization_marker", 0);
+  rvizMarkerPub2_ = node->create_publisher<visualization_msgs::msg::Marker> ("ARmarker_points", 0);
 	
   //Give tf a chance to catch up before the camera callback starts asking for transforms
-  ros::Duration(1.0).sleep();
-  ros::spinOnce();			
+  rclcpp::Duration(1.0).sleep();
+  rclcpp::spin_some(node);			
 	 
   //Subscribe to topics and set up callbacks
   ROS_INFO ("Subscribing to image topic");
-  cloud_sub_ = n.subscribe(cam_image_topic, 1, &getPointCloudCallback);
 
-  ros::spin();
+  cloud_sub_ = this->create_subscription<sensor_msgs::msg::PointCloud2>(cam_image_topic, 1, getPointCloudCallback);
+
+  rclcpp::spin(node);
+  rclcpp::shutdown();
 
   return 0;
 }

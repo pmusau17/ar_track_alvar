@@ -37,14 +37,16 @@
 #include "FileFormat.h"
 #include <vector>
 
-#include <ros/ros.h>
-#include <ros/package.h>
-#include <ros/console.h>
-#include <geometry_msgs/TransformStamped.h>
-#include <image_transport/image_transport.h>
-#include <sensor_msgs/CameraInfo.h>
-#include <visualization_msgs/Marker.h>
+#include "rclcpp/rclcpp.hpp"
+#include <geometry_msgs/msg/transform_stamped.hpp>
+#include <image_transport/image_transport.hpp>
+#include <sensor_msgs/msg/camera_info.hpp>
+#include <visualization_msgs/msg/marker.hpp>
 #include <resource_retriever/retriever.h>
+#include "opencv2/core/types_c.h"
+#include <opencv2/core/core_c.h>
+#include <opencv2/calib3d/calib3d_c.h>
+
 
 namespace alvar {
 
@@ -54,14 +56,14 @@ struct ALVAR_EXPORT ProjPoints {
 	int height;
 
 	/** \brief 3D object points corresponding with the detected 2D image points. */
-	std::vector<CvPoint3D64f> object_points;
+	std::vector<cv::Point3f> object_points;
 	/** \brief Detected 2D object points
 	 * If point_counts[0] == 10, then the 
 	 * first 10 points are detected in the first frame. If 
 	 * point_counts[1]	== 6, then the next 6 of these points are 
 	 * detected in the next frame... etc.
 	 */
-	std::vector<CvPoint2D64f> image_points;
+	std::vector<cv::Point2f> image_points;
 	/** \brief Vector indicating how many points are detected for each frame */
 	std::vector<int> point_counts;
 
@@ -69,17 +71,17 @@ struct ALVAR_EXPORT ProjPoints {
 	void Reset();
 
 	/** \brief Add elements to \e object_points , \e  image_points and \e point_counts using Chessboard pattern */
-	bool AddPointsUsingChessboard(IplImage *image, double etalon_square_size, int etalon_rows, int etalon_columns, bool visualize);
+	bool AddPointsUsingChessboard(cv::Mat* image, double etalon_square_size, int etalon_rows, int etalon_columns, bool visualize);
 
 	/** \brief Add elements to \e object_points , \e  image_points and \e point_counts using detected markers */
-	bool AddPointsUsingMarkers(std::vector<PointDouble> &marker_corners, std::vector<PointDouble> &marker_corners_img, IplImage* image);
+	bool AddPointsUsingMarkers(std::vector<PointDouble> &marker_corners, std::vector<PointDouble> &marker_corners_img, cv::Mat* image);
 };
 
 
 /**
  * \brief Simple \e Camera class for calculating distortions, orientation or projections with pre-calibrated camera
  */
-class ALVAR_EXPORT Camera {
+class ALVAR_EXPORT Camera: public rclcpp::Node {
 
 public:
 
@@ -93,10 +95,9 @@ public:
 
 protected:
 	std::string cameraInfoTopic_;
-	sensor_msgs::CameraInfo cam_info_;
-	void camInfoCallback (const sensor_msgs::CameraInfoConstPtr &);
-	ros::Subscriber sub_;
-	ros::NodeHandle n_;
+	sensor_msgs::msg::CameraInfo cam_info_;
+	void camInfoCallback (const sensor_msgs::msg::CameraInfo::SharedPtr cam_info);
+	rclcpp::Subscription<sensor_msgs::msg::CameraInfo>::SharedPtr sub_;
 
 private:
 	bool LoadCalibXML(const char *calibfile);
@@ -143,10 +144,10 @@ public:
 
 	/** \brief Constructor */
 	Camera();
-	Camera(ros::NodeHandle & n, std::string cam_info_topic);
+	Camera(std::string cam_info_topic);
 
 	/** Sets the intrinsic calibration */
-	void SetCameraInfo(const sensor_msgs::CameraInfo& camInfo);
+	void SetCameraInfo(const sensor_msgs::msg::CameraInfo::SharedPtr cam_info);
 
 	/** \brief Get x-direction FOV in radians */
 	double GetFovX() {
@@ -211,10 +212,10 @@ public:
 	void Undistort(PointDouble &point);
 
 	/** \brief Unapplys the lens distortion for one point on an image plane. */
-	void Undistort(CvPoint2D32f& point);
+	void Undistort(cv::Point2f& point);
 
 	/** \brief Applys the lens distortion for one point on an image plane. */
-	void Distort(CvPoint2D32f& point);
+	void Distort(cv::Point3f& point);
 
 	/** \brief Applys the lens distortion for points on image plane. */
 	void Distort(std::vector<PointDouble>& points);
@@ -223,11 +224,11 @@ public:
 	void Distort(PointDouble &point);
 
 	/** \brief Calculate exterior orientation */
-	void CalcExteriorOrientation(std::vector<CvPoint3D64f>& pw, std::vector<CvPoint2D64f>& pi, Pose *pose);
+	void CalcExteriorOrientation(std::vector<cv::Point3f>& pw, std::vector<cv::Point2f>& pi, Pose *pose);
 
 	/** \brief Calculate exterior orientation
 	 */
-	void CalcExteriorOrientation(std::vector<CvPoint3D64f>& pw, std::vector<PointDouble >& pi,
+	void CalcExteriorOrientation(std::vector<cv::Point3f>& pw, std::vector<PointDouble >& pi,
 						CvMat *rodriques, CvMat *tra);
 
 	/** \brief Calculate exterior orientation
@@ -246,13 +247,13 @@ public:
 	bool CalcExteriorOrientation(const CvMat* object_points, CvMat* image_points, CvMat *rodriques, CvMat *tra);
 
 	/** \brief Project one point */
-	void ProjectPoint(const CvPoint3D64f pw, const Pose *pose, CvPoint2D64f &pi) const;
+	void ProjectPoint(const cv::Point3f pw, const Pose *pose, cv::Point2f &pi) const;
 
-	/** \brief Project one point */
-	void ProjectPoint(const CvPoint3D32f pw, const Pose *pose, CvPoint2D32f &pi) const;
+	// /** \brief Project one point */
+	// void ProjectPoint(const cv::Point3f pw, const Pose *pose, cv::Point2f &pi) const;
 
 	/** \brief Project points */
-	void ProjectPoints(std::vector<CvPoint3D64f>& pw, Pose *pose, std::vector<CvPoint2D64f>& pi) const;
+	void ProjectPoints(std::vector<cv::Point3f>& pw, Pose *pose, std::vector<cv::Point2f>& pi) const;
 
 	/** \brief Project points
 	 */

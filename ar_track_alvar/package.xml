@@ -1,4 +1,4 @@
-<package>
+<package format="2">
 <name>ar_track_alvar</name>
 <version>0.7.1</version>
 <description>
@@ -10,48 +10,32 @@ This package is a ROS wrapper for Alvar, an open source AR tag tracking library.
 <license>LGPL-2.1</license>
 <url type="website">http://ros.org/wiki/ar_track_alvar</url>
 
- <buildtool_depend>catkin</buildtool_depend>
+ <buildtool_depend>ament_cmake</buildtool_depend>
+<depend>ar_track_alvar_msgs</depend>
+<depend>cv_bridge</depend>
+<depend>geometry_msgs</depend>
+<depend>image_transport</depend>
+<depend>pcl_conversions</depend>
+<depend>perception_pcl</depend>
+<depend>rclcpp</depend>
+<depend>rclpy</depend>
+<depend>resource_retriever</depend>
+<depend>sensor_msgs</depend>
+<depend>std_msgs</depend>
+<depend>tf2</depend>
+<depend>tf2_ros</depend>
+<depend>tinyxml2</depend>
+<depend>visualization_msgs</depend>
+<depend>libopencv-dev</depend>
+<depend>eigen</depend>
+<depend>libpcl-all-dev</depend>
+<!-- <build_depend>cmake_modules</build_depend> -->
 
- <build_depend>ar_track_alvar_msgs</build_depend>
- <build_depend>cmake_modules</build_depend>
- <build_depend>cv_bridge</build_depend>
- <build_depend>geometry_msgs</build_depend>
- <build_depend>image_transport</build_depend>
- <build_depend>message_generation</build_depend>
- <build_depend>pcl_ros</build_depend>
- <build_depend>pcl_conversions</build_depend>
- <build_depend>resource_retriever</build_depend>
- <build_depend>rospy</build_depend>
- <build_depend>roscpp</build_depend>
- <build_depend>sensor_msgs</build_depend>
- <build_depend>std_msgs</build_depend>
- <build_depend>tf</build_depend>
- <build_depend>tf2</build_depend>
- <build_depend>tinyxml</build_depend>
- <build_depend>visualization_msgs</build_depend>
- <build_depend>dynamic_reconfigure</build_depend>
 
- <run_depend>ar_track_alvar_msgs</run_depend>
- <run_depend>cv_bridge</run_depend>
- <run_depend>geometry_msgs</run_depend>
- <run_depend>image_transport</run_depend>
- <run_depend>message_runtime</run_depend>
- <run_depend>pcl_ros</run_depend>
- <run_depend>pcl_conversions</run_depend>
- <run_depend>resource_retriever</run_depend>
- <run_depend>rospy</run_depend>
- <run_depend>roscpp</run_depend>
- <run_depend>sensor_msgs</run_depend>
- <run_depend>std_msgs</run_depend>
- <run_depend>tf</run_depend>
- <run_depend>tf2</run_depend>
- <run_depend>tinyxml</run_depend>
- <run_depend>visualization_msgs</run_depend>
- <run_depend>dynamic_reconfigure</run_depend>
-
- <test_depend>rosbag</test_depend>
- <test_depend>rostest</test_depend>
+<test_depend>ament_cmake_gtest</test_depend>
+<test_depend>rosbag2</test_depend>
+<export>
+<build_type>ament_cmake</build_type>
+</export>
 
 </package>
-
-

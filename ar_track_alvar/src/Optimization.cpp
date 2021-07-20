@@ -24,7 +24,10 @@
 #include "ar_track_alvar/Alvar.h"
 #include "ar_track_alvar/Optimization.h"
 #include "time.h"
-#include "highgui.h"
+#include <opencv2/opencv.hpp>
+#include <opencv2/highgui.hpp>
+#include <opencv2/core/core.hpp>
+#include <opencv2/core/core_c.h>
 
 #include <iostream>
 using namespace std;

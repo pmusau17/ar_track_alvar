@@ -23,7 +23,8 @@
 
 #include "ar_track_alvar/Alvar.h"
 #include "ar_track_alvar/Marker.h"
-#include "highgui.h"
+#include <opencv2/core/core_c.h>
+#include "opencv2/core/types_c.h"
 
 template class ALVAR_EXPORT alvar::MarkerIteratorImpl<alvar::Marker>;
 template class ALVAR_EXPORT alvar::MarkerIteratorImpl<alvar::MarkerData>;

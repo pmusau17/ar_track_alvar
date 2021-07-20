@@ -41,7 +41,8 @@
 #include <cv_bridge/cv_bridge.h>
 #include <ar_track_alvar_msgs/AlvarMarker.h>
 #include <ar_track_alvar_msgs/AlvarMarkers.h>
-#include <tf/transform_listener.h>
+#include "tf2_ros/buffer.h"
+#include "tf2_ros/transform_listener.h"
 #include <tf/transform_broadcaster.h>
 #include <sensor_msgs/image_encodings.h>
 #include <pcl_conversions/pcl_conversions.h>
@@ -68,8 +69,8 @@ ros::Publisher arMarkerPub_;
 ros::Publisher rvizMarkerPub_;
 ros::Publisher rvizMarkerPub2_;
 ar_track_alvar_msgs::AlvarMarkers arPoseMarkers_;
-visualization_msgs::Marker rvizMarker_;
-tf::TransformListener *tf_listener;
+visualization_msgs::msg::Marker rvizMarker_;
+tf2_ros::TransformListener *tf_listener;
 tf::TransformBroadcaster *tf_broadcaster;
 MarkerDetector<MarkerData> marker_detector;
 
@@ -90,10 +91,10 @@ int marker_margin = 2; // default marker margin
 //Debugging utility function
 void draw3dPoints(ARCloud::Ptr cloud, string frame, int color, int id, double rad)
 {
-  visualization_msgs::Marker rvizMarker;
+  visualization_msgs::msg::Marker rvizMarker;
 
   rvizMarker.header.frame_id = frame;
-  rvizMarker.header.stamp = ros::Time::now();
+  rvizMarker.header.stamp = rclcpp::Time::now();
   rvizMarker.id = id;
   rvizMarker.ns = "3dpts";
 
@@ -101,8 +102,8 @@ void draw3dPoints(ARCloud::Ptr cloud, string frame, int color, int id, double ra
   rvizMarker.scale.y = rad;
   rvizMarker.scale.z = rad;
 
-  rvizMarker.type = visualization_msgs::Marker::SPHERE_LIST;
-  rvizMarker.action = visualization_msgs::Marker::ADD;
+  rvizMarker.type = visualization_msgs::msg::Marker::SPHERE_LIST;
+  rvizMarker.action = visualization_msgs::msg::Marker::ADD;
 
   if(color==1){
     rvizMarker.color.r = 0.0f;
@@ -131,17 +132,17 @@ void draw3dPoints(ARCloud::Ptr cloud, string frame, int color, int id, double ra
     rvizMarker.points.push_back(p);
   }
 
-  rvizMarker.lifetime = ros::Duration (1.0);
+  rvizMarker.lifetime = rclcpp::Duration (1.0);
   rvizMarkerPub2_.publish (rvizMarker);
 }
 
 
 void drawArrow(gm::Point start, tf::Matrix3x3 mat, string frame, int color, int id)
 {
-  visualization_msgs::Marker rvizMarker;
+  visualization_msgs::msg::Marker rvizMarker;
 
   rvizMarker.header.frame_id = frame;
-  rvizMarker.header.stamp = ros::Time::now();
+  rvizMarker.header.stamp = rclcpp::Time::now();
   rvizMarker.id = id;
   rvizMarker.ns = "arrow";
 
@@ -149,8 +150,8 @@ void drawArrow(gm::Point start, tf::Matrix3x3 mat, string frame, int color, int 
   rvizMarker.scale.y = 0.01;
   rvizMarker.scale.z = 0.1;
 
-  rvizMarker.type = visualization_msgs::Marker::ARROW;
-  rvizMarker.action = visualization_msgs::Marker::ADD;
+  rvizMarker.type = visualization_msgs::msg::Marker::ARROW;
+  rvizMarker.action = visualization_msgs::msg::Marker::ADD;
 
   for(int i=0; i<3; i++){
     rvizMarker.points.clear();
@@ -161,7 +162,7 @@ void drawArrow(gm::Point start, tf::Matrix3x3 mat, string frame, int color, int 
     end.z = start.z + mat[2][i];
     rvizMarker.points.push_back(end);
     rvizMarker.id += 10*i;
-    rvizMarker.lifetime = ros::Duration (1.0);
+    rvizMarker.lifetime = rclcpp::Duration (1.0);
 
     if(color==1){
       rvizMarker.color.r = 1.0f;
@@ -302,7 +303,7 @@ void GetMarkerPoses(IplImage *image, ARCloud &cloud) {
 	    }
 	  }
 	  else
-	    ROS_ERROR("FindMarkerBundles: Bad Orientation: %i for ID: %i", ori, id);
+	    RCLCPP_ERROR(rclcpp::get_logger("ArTrackAlvar"), "FindMarkerBundles: Bad Orientation: %i for ID: %i", ori, id);
 
 	  //Get the 3D marker points
 	  BOOST_FOREACH (const PointDouble& p, m->ros_marker_points_img)
@@ -317,9 +318,9 @@ void GetMarkerPoses(IplImage *image, ARCloud &cloud) {
 
 
 
-void getPointCloudCallback (const sensor_msgs::PointCloud2ConstPtr &msg)
+void getPointCloudCallback (const sensor_msgs::msg::PointCloud2::ConstSharedPtr &msg)
 {
-  sensor_msgs::ImagePtr image_msg(new sensor_msgs::Image);
+  sensor_msgs::msg::ImagePtr image_msg(new sensor_msgs::msg::Image);
 
   // If desired, use the frame in the message's header.
   if (output_frame_from_msg)
@@ -352,17 +353,17 @@ void getPointCloudCallback (const sensor_msgs::PointCloud2ConstPtr &msg)
     Pose ret_pose;
     GetMarkerPoses(&ipl_image, cloud);
 
-    tf::StampedTransform CamToOutput;
+    tf2::StampedTransform CamToOutput;
     if (image_msg->header.frame_id == output_frame) {
       CamToOutput.setIdentity();
     } else {
       try {
         tf_listener->waitForTransform(output_frame, image_msg->header.frame_id,
-                                      image_msg->header.stamp, ros::Duration(1.0));
+                                      image_msg->header.stamp, rclcpp::Duration(1.0));
         tf_listener->lookupTransform(output_frame, image_msg->header.frame_id,
                                      image_msg->header.stamp, CamToOutput);
       } catch (tf::TransformException ex) {
-        ROS_ERROR("%s",ex.what());
+        RCLCPP_ERROR(rclcpp::get_logger("ArTrackAlvar"), "%s",ex.what());
       }
     }
 
@@ -397,7 +398,7 @@ void getPointCloudCallback (const sensor_msgs::PointCloud2ConstPtr &msg)
 	  out << id;
 	  std::string id_string = out.str();
 	  markerFrame += id_string;
-	  tf::StampedTransform camToMarker (t, image_msg->header.stamp, image_msg->header.frame_id, markerFrame.c_str());
+	  tf2::StampedTransform camToMarker (t, image_msg->header.stamp, image_msg->header.frame_id, markerFrame.c_str());
 	  tf_broadcaster->sendTransform(camToMarker);
 
 	  //Create the rviz visualization messages
@@ -410,8 +411,8 @@ void getPointCloudCallback (const sensor_msgs::PointCloud2ConstPtr &msg)
 	  rvizMarker_.scale.y = 1.0 * marker_size/100.0;
 	  rvizMarker_.scale.z = 0.2 * marker_size/100.0;
 	  rvizMarker_.ns = "basic_shapes";
-	  rvizMarker_.type = visualization_msgs::Marker::CUBE;
-	  rvizMarker_.action = visualization_msgs::Marker::ADD;
+	  rvizMarker_.type = visualization_msgs::msg::Marker::CUBE;
+	  rvizMarker_.action = visualization_msgs::msg::Marker::ADD;
 	  switch (id)
 	    {
 	    case 0:
@@ -451,7 +452,7 @@ void getPointCloudCallback (const sensor_msgs::PointCloud2ConstPtr &msg)
 	      rvizMarker_.color.a = 1.0;
 	      break;
 	    }
-	  rvizMarker_.lifetime = ros::Duration (1.0);
+	  rvizMarker_.lifetime = rclcpp::Duration (1.0);
 	  rvizMarkerPub_.publish (rvizMarker_);
 
 	  //Get the pose of the tag in the camera frame, then the output frame (usually torso)
@@ -476,7 +477,7 @@ void getPointCloudCallback (const sensor_msgs::PointCloud2ConstPtr &msg)
 
 void configCallback(ar_track_alvar::ParamsConfig &config, uint32_t level)
 {
-  ROS_INFO("AR tracker reconfigured: %s %.2f %.2f %.2f %.2f", config.enabled ? "ENABLED" : "DISABLED",
+  RCLCPP_INFO(rclcpp::get_logger("ArTrackAlvar"), "AR tracker reconfigured: %s %.2f %.2f %.2f %.2f", config.enabled ? "ENABLED" : "DISABLED",
            config.max_frequency, config.marker_size, config.max_new_marker_error, config.max_track_error);
 
   enableSwitched = enabled != config.enabled;
@@ -491,10 +492,10 @@ void configCallback(ar_track_alvar::ParamsConfig &config, uint32_t level)
 int main(int argc, char *argv[])
 {
   ros::init (argc, argv, "marker_detect");
-  ros::NodeHandle n, pn("~");
+  rclcpp::Node n, pn("~");
 
   if(argc > 1) {
-    ROS_WARN("Command line arguments are deprecated. Consider using ROS parameters and remappings.");
+    RCLCPP_WARN(rclcpp::get_logger("ArTrackAlvar"), "Command line arguments are deprecated. Consider using ROS parameters and remappings.");
 
     if(argc < 7){
       std::cout << std::endl;
@@ -534,7 +535,7 @@ int main(int argc, char *argv[])
     pn.param("output_frame_from_msg", output_frame_from_msg, false);
 
     if (!output_frame_from_msg && !pn.getParam("output_frame", output_frame)) {
-      ROS_ERROR("Param 'output_frame' has to be set if the output frame is not "
+      RCLCPP_ERROR(rclcpp::get_logger("ArTrackAlvar"), "Param 'output_frame' has to be set if the output frame is not "
                 "derived from the point cloud message.");
       exit(EXIT_FAILURE);
     }
@@ -555,12 +556,12 @@ int main(int argc, char *argv[])
 
   if (!output_frame_from_msg) {
     // TF listener is only required when output frame != camera frame.
-    tf_listener = new tf::TransformListener(n);
+    tf_listener = new tf2_ros::TransformListener(n);
   }
   tf_broadcaster = new tf::TransformBroadcaster();
   arMarkerPub_ = n.advertise < ar_track_alvar_msgs::AlvarMarkers > ("ar_pose_marker", 0);
-  rvizMarkerPub_ = n.advertise < visualization_msgs::Marker > ("visualization_marker", 0);
-  rvizMarkerPub2_ = n.advertise < visualization_msgs::Marker > ("ARmarker_points", 0);
+  rvizMarkerPub_ = n.advertise < visualization_msgs::msg::Marker > ("visualization_marker", 0);
+  rvizMarkerPub2_ = n.advertise < visualization_msgs::msg::Marker > ("ARmarker_points", 0);
 
   // Prepare dynamic reconfiguration
   dynamic_reconfigure::Server < ar_track_alvar::ParamsConfig > server;
@@ -571,29 +572,29 @@ int main(int argc, char *argv[])
 
   //Give tf a chance to catch up before the camera callback starts asking for transforms
   // It will also reconfigure parameters for the first time, setting the default values
-  ros::Duration(1.0).sleep();
-  ros::spinOnce();
+  rclcpp::Duration(1.0).sleep();
+  rclcpp::spin_some(node);
 
   if (enabled == true)
   {
     // This always happens, as enable is true by default
-    ROS_INFO("Subscribing to image topic");
+    RCLCPP_INFO(rclcpp::get_logger("ArTrackAlvar"), "Subscribing to image topic");
     cloud_sub_ = n.subscribe(cam_image_topic, 1, &getPointCloudCallback);
   }
 
   // Run at the configured rate, discarding pointcloud msgs if necessary
-  ros::Rate rate(max_frequency);
+  rclcpp::Rate rate(max_frequency);
 
-  while (ros::ok())
+  while (rclcpp::ok())
   {
-    ros::spinOnce();
+    rclcpp::spin_some(node);
     rate.sleep();
 
-    if (std::abs((rate.expectedCycleTime() - ros::Duration(1.0 / max_frequency)).toSec()) > 0.001)
+    if (std::abs((rate.expectedCycleTime() - rclcpp::Duration(1.0 / max_frequency)).toSec()) > 0.001)
     {
       // Change rate dynamically; if must be above 0, as 0 will provoke a segfault on next spinOnce
-      ROS_DEBUG("Changing frequency from %.2f to %.2f", 1.0 / rate.expectedCycleTime().toSec(), max_frequency);
-      rate = ros::Rate(max_frequency);
+      RCLCPP_DEBUG(rclcpp::get_logger("ArTrackAlvar"), "Changing frequency from %.2f to %.2f", 1.0 / rate.expectedCycleTime().toSec(), max_frequency);
+      rate = rclcpp::Rate(max_frequency);
     }
 
     if (enableSwitched == true)

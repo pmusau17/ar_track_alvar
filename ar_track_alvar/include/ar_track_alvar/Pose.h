@@ -26,6 +26,7 @@
 
 #include "Alvar.h"
 #include "Rotation.h"
+#include "opencv2/core/types_c.h"
 
 /**
  * \file Pose.h

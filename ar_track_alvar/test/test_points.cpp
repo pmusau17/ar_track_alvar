@@ -78,7 +78,8 @@ a::ARCloud::Ptr generateCloud(const double px, const double py, const double pz,
 
 int main (int argc, char** argv)
 {
-  ros::init(argc, argv, "test_points");
+  rclcpp::init(argc, argv);
+  auto node = rclcpp::Node::make_shared("test_points");
   ifstream f("points");
   a::ARCloud::Ptr cloud(new a::ARCloud());
   while (!f.eof())
@@ -87,7 +88,7 @@ int main (int argc, char** argv)
     f >> pt.x >> pt.y >> pt.z;
     cloud->points.push_back(pt);
   }
-  ROS_INFO("Cloud has %zu points such as (%.2f, %.2f, %.2f)",
+  RCLCPP_INFO(rclcpp::get_logger("ArTrackAlvar"), "Cloud has %zu points such as (%.2f, %.2f, %.2f)",
            cloud->points.size(), cloud->points[0].x, cloud->points[0].y,
            cloud->points[0].z);
   a::ARPoint p1, p2, p3;
@@ -102,7 +103,7 @@ int main (int argc, char** argv)
   p3.z = 88;
 
   a::PlaneFitResult res = a::fitPlane(cloud);
-  ROS_INFO("Plane equation is %.3fx + %.3fy + %.3fz + %.3f = 0",
+  RCLCPP_INFO(rclcpp::get_logger("ArTrackAlvar"), "Plane equation is %.3fx + %.3fy + %.3fz + %.3f = 0",
            res.coeffs.values[0], res.coeffs.values[1], res.coeffs.values[2],
            res.coeffs.values[3]);
   

@@ -31,7 +31,11 @@
  */
 
 #include "Alvar.h"
-#include "cxcore.h"
+#include <opencv2/core/core_c.h>
+#include "opencv2/core/types_c.h"
+#include <opencv2/core/core_c.h>
+#include <opencv2/calib3d/calib3d_c.h>
+
 
 namespace alvar {
 
@@ -279,11 +283,11 @@ class ALVAR_EXPORT KalmanVisualize {
 	Kalman *kalman_ext;
 	KalmanSensor *sensor_ext;
 	/** \brief Image collecting visualization of the Kalman filter */
-	IplImage *img;
+	cv::Mat *img;
 	/** \brief Image to show */
-	IplImage *img_legend;
+	cv::Mat *img_legend;
 	/** \brief Image to show */
-	IplImage *img_show;
+	cv::Mat *img_show;
 	/** \brief visualization scale before show */
 	int img_scale;
 	/** \brief Add matrix to the image */

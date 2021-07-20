@@ -44,7 +44,7 @@ struct ALVAR_EXPORT Line
 	* \brief Constructor.
 	* \param params params[0] and params[1] are the x and y components of the direction vector, params[2] and params[3] are the x and y coordinates of the line center.
 	*/
-	Line(float params[4]);
+	Line(cv::Vec4f params);
 	Line()
 	{}
 
@@ -68,7 +68,7 @@ struct ALVAR_EXPORT Line
 int ALVAR_EXPORT FitLines(std::vector<Line> &lines,
 			 const std::vector<int>& corners,
 			 const std::vector<PointInt >& edge,
-					IplImage *grey=0); 
+					cv::Mat *grey=0); 
 
 /**
  * \brief Calculates an intersection point of two lines.

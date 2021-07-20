@@ -49,7 +49,8 @@ class TestArAlvarRos(unittest.TestCase):
     '''
 
     def setUp(self):
-        rospy.init_node('test_armarker_ros_detect')
+        rclpy.init()
+        node = rclpy.create_node('test_armarker_ros_detect')
         self.tflistener = tf.TransformListener()
 
     def tearDown(self):

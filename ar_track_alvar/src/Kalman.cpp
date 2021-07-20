@@ -23,9 +23,7 @@
 
 #include <iostream>
 #include <algorithm> // for std::max
-#include "cxcore.h"
-#include "cv.h"
-#include "highgui.h"
+#include <opencv2/core/core_c.h>
 #include "ar_track_alvar/Kalman.h"
 #include "ar_track_alvar/Util.h"
 #include "ar_track_alvar/Alvar.h"
@@ -295,7 +293,13 @@ KalmanEkf::~KalmanEkf() {
 }
 
 void KalmanVisualize::img_matrix(CvMat *mat, int top, int left) {
-	cvSetImageROI(img, cvRect(top, left, mat->cols, mat->rows));
+
+	cv::Rect roi(top, left, mat->cols, mat->rows);
+	cv::Mat im = img->clone();
+	cv::Mat image_roi = im(roi);
+	CvMat img2 = cvMat(image_roi);
+
+	//cvSetImageROI(img, cvRect(top, left, mat->cols, mat->rows));
 	for (int j=0; j<mat->rows; j++) {
 		for (int i=0; i<mat->cols; i++) {
 			double d = cvGet2D(mat, j, i).val[0];
@@ -316,13 +320,13 @@ void KalmanVisualize::img_matrix(CvMat *mat, int top, int left) {
 				c1 = 255; c2 = 255;	c3 = 255;
 			}
 			if (d < 0) {
-				cvSet2D(img, j, i, cvScalar(c3, c2, c1)); // BRG
+				cvSet2D(&img2, j, i, cvScalar(c3, c2, c1)); // BRG
 			} else {
-				cvSet2D(img, j, i, cvScalar(c2, c1, c3)); // BGR
+				cvSet2D(&img2, j, i, cvScalar(c2, c1, c3)); // BGR
 			}
 		}
 	}
-	cvResetImageROI(img);
+	//cvResetImageROI(img);
 }
 
 void KalmanVisualize::Init() {
@@ -330,26 +334,49 @@ void KalmanVisualize::Init() {
 	m = sensor->get_m();
 	int img_width = std::max(3+n+3+n+5+m+5, 1+n+1+n+1+n+1+m+1+n+1);
 	int img_height = 1+n+1+std::max(n, m+1+m)+1;
-	img = cvCreateImage(cvSize(img_width, img_height), IPL_DEPTH_8U, 3);
-	cvSet(img, cvScalar(64,64,64));
-	img_legend = cvLoadImage("Legend.png");
+	cv::Mat img_r = cv::Mat(cv::Size(img_width, img_height),CV_8UC3);
+	img_r = cv::Scalar(64,64,64);
+	img = &img_r;
+	//cvSet(img, );
+	cv::Mat load_im = cv::imread("Legend.png");
+	img_legend = &load_im;
+	CvMat img_legend2 = cvMat(load_im);
+
 	if (img_legend) {
 		for (img_scale=1; img_scale<50; img_scale++) {
-			if (img_scale*img_width > img_legend->width) {
+			if (img_scale*img_width > img_legend2.width) {
 				break;
 			}
 		}
-		img_show = cvCreateImage(cvSize(img_width*img_scale, img_legend->height + img_height*img_scale), IPL_DEPTH_8U, 3);
-		cvSet(img_show, cvScalar(64,64,64));
-		cvSetImageROI(img_show, cvRect(0, 0, img_legend->width, img_legend->height));
-		cvCopy(img_legend, img_show);
-		cvResetImageROI(img_show);
-		cvNamedWindow("KalmanVisualize");
+
+
+		//img_show = cvCreateImage(cvSize(img_width*img_scale, img_legend2.height + img_height*img_scale), IPL_DEPTH_8U, 3);
+
+		cv::Mat img_temp = cv::Mat(cv::Size(img_width*img_scale, img_legend2.height + img_height*img_scale),CV_8UC3);
+		img_show = &img_temp;
+
+		CvMat img_show2 = cvMat(img_temp);
+		cvSet(&img_show2, cvScalar(64,64,64));
+
+
+		cv::Rect roi2(0, 0, img_legend2.width, img_legend2.height);
+		cv::Mat im2 = img_show->clone();
+		cv::Mat image_roi2 = im2(roi2);
+		CvMat img3 = cvMat(image_roi2);
+
+		//cvSetImageROI(&img_show2, cvRect(0, 0, img_legend2.width, img_legend2.height));
+
+
+		cvCopy(&img_legend2, &img3);
+		//cvResetImageROI(img_show);
+		cv::namedWindow("KalmanVisualize");
 	} else {
 		img_scale = 1;
-		img_show = cvCreateImage(cvSize(img_width*img_scale, img_height*img_scale), IPL_DEPTH_8U, 3);
-		cvSet(img_show, cvScalar(64,64,64));
-		cvNamedWindow("KalmanVisualize",0);
+		cv::Mat img_temp = cv::Mat(cv::Size(img_width*img_scale, img_legend2.height + img_height*img_scale),CV_8UC3);
+		img_show = &img_temp;
+		CvMat img_show2 = cvMat(img_temp);
+		cvSet(&img_show2, cvScalar(64,64,64));
+		cv::namedWindow("KalmanVisualize",0);
 	}
 }
 
@@ -395,7 +422,7 @@ KalmanVisualize::KalmanVisualize(KalmanCore *_kalman, KalmanSensorCore *_sensor)
 }
 
 KalmanVisualize::~KalmanVisualize() {
-	cvReleaseImage(&img);
+	// cvReleaseImage(&img);
 }
 
 void KalmanVisualize::update_pre() {
@@ -421,20 +448,29 @@ void KalmanVisualize::update_post() {
 		img_matrix(kalman_ext->Q, 2+n, y); // n
 		img_matrix(kalman_ext->P_pred, 3+n+n, y); // n
 		img_matrix(sensor_ext->R, 4+n+n+n, y); // m
-		img_matrix(kalman_ext->P, img->width - 1 - n, y); // n
+		img_matrix(kalman_ext->P, img->rows - 1 - n, y); // n
 	}
 	if (img_legend) {
-		cvSetImageROI(img_show, cvRect(0, img_legend->height, img->width * img_scale, img->height * img_scale));
-		cvResize(img, img_show, CV_INTER_NN);
-		cvResetImageROI(img_show);
+
+		cv::Rect roi(0, img_legend->cols, img->rows * img_scale, img->cols * img_scale);
+		cv::Mat im2 = img_show->clone();
+		cv::Mat image_roi2 = im2(roi);
+		CvMat img3 = cvMat(image_roi2);
+
+		//cvSetImageROI(img_show, cvRect(0, img_legend->height, img->width * img_scale, img->height * img_scale));
+		//cvResize(img, img_show, CV_INTER_NN);
+		//cvResetImageROI(img_show);
+
+
+
 	} else {
-		cvResize(img, img_show, CV_INTER_NN);
+		//cvResize(img, img_show, CV_INTER_NN);
 	}
 }
 
 void KalmanVisualize::show() {
 	//out_matrix(sensor->K, "K");
-	cvShowImage("KalmanVisualize", img_show);
+	cv::imshow("KalmanVisualize", *img_show);
 }
 
 } // namespace alvar

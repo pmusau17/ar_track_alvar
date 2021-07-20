@@ -95,7 +95,7 @@ int main (int argc, char** argv)
   a::ARCloud::ConstPtr cloud =
     generateCloud(px, py, pz, vx, vy, vz, wx, wy, wz);
   const size_t n = cloud->size();
-  ROS_INFO("Generated cloud with %zu points such as (%.4f, %.4f, %.4f)"
+  RCLCPP_INFO(rclcpp::get_logger("ArTrackAlvar"), "Generated cloud with %zu points such as (%.4f, %.4f, %.4f)"
            " and (%.4f, %.4f, %.4f)", n, (*cloud)[0].x, (*cloud)[0].y,
            (*cloud)[0].z, (*cloud)[n-1].x, (*cloud)[n-1].y, (*cloud)[n-1].z);
   
@@ -105,11 +105,11 @@ int main (int argc, char** argv)
   a::ARPoint p1 = (*cloud)[i1];
   a::ARPoint p2 = (*cloud)[i2];
   a::ARPoint p3 = (*cloud)[i3];
-  ROS_INFO("Points are (%.4f, %.4f, %.4f) and (%.4f, %.4f, %.4f)",
+  RCLCPP_INFO(rclcpp::get_logger("ArTrackAlvar"), "Points are (%.4f, %.4f, %.4f) and (%.4f, %.4f, %.4f)",
            p1.x, p1.y, p1.z, p2.x, p2.y, p2.z);
 
   a::PlaneFitResult res = a::fitPlane(cloud);
-  ROS_INFO("Plane equation is %.3fx + %.3fy + %.3fz + %.3f = 0",
+  RCLCPP_INFO(rclcpp::get_logger("ArTrackAlvar"), "Plane equation is %.3fx + %.3fy + %.3fz + %.3f = 0",
            res.coeffs.values[0], res.coeffs.values[1], res.coeffs.values[2],
            res.coeffs.values[3]);
   

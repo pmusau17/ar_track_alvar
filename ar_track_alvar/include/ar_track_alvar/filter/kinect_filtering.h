@@ -44,21 +44,21 @@
 #include <pcl/registration/icp.h>
 #include <pcl/registration/registration.h>
 
-#include <geometry_msgs/PoseStamped.h>
-#include <ros/ros.h>
+#include <geometry_msgs/msg/pose_stamped.hpp>
+#include "rclcpp/rclcpp.hpp"
 #include <pcl/ModelCoefficients.h>
 #include <pcl/point_types.h>
 #include <pcl/sample_consensus/method_types.h>
 #include <pcl/sample_consensus/model_types.h>
 #include <pcl/segmentation/sac_segmentation.h>
-#include <pcl_ros/point_cloud.h>
+// #include <pcl_ros/point_cloud.hpp>
 #include <pcl/filters/extract_indices.h>
 #include <boost/lexical_cast.hpp>
 #include <Eigen/StdVector>
 
 #include <opencv2/core/core.hpp>
 
-#include <tf/LinearMath/Matrix3x3.h>
+#include <tf2/LinearMath/Matrix3x3.h>
 
 namespace ar_track_alvar
 {
@@ -91,18 +91,18 @@ int
 extractOrientation (const pcl::ModelCoefficients& coeffs,
                     const ARPoint& p1, const ARPoint& p2,
                     const ARPoint& p3, const ARPoint& p4,
-                    geometry_msgs::Quaternion &retQ);
+                    geometry_msgs::msg::Quaternion &retQ);
 
 // Like extractOrientation except return value is a btMatrix3x3
 int
 extractFrame (const pcl::ModelCoefficients& coeffs,
               const ARPoint& p1, const ARPoint& p2,
               const ARPoint& p3, const ARPoint& p4,
-              tf::Matrix3x3 &retmat);
+              tf2::Matrix3x3 &retmat);
 
 
 // Return the centroid (mean) of a point cloud
-geometry_msgs::Point centroid (const ARCloud& points);
+geometry_msgs::msg::Point centroid (const ARCloud& points);
 } // namespace
 
 #endif // include guard

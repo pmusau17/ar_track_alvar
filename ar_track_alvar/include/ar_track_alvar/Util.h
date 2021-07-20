@@ -37,8 +37,11 @@
 #include <iostream>
 #include <iomanip>
 #include <sstream>
-#include <cxcore.h>
-#include <cv.h>
+#include <opencv2/opencv.hpp>
+#include <opencv2/highgui.hpp>
+#include <opencv2/core/core.hpp>
+#include <opencv2/core/core_c.h>
+#include "opencv2/core/types_c.h"
 #include <cmath> //for abs
 #include <map>
 #include <opencv2/calib3d/calib3d_c.h> //Compatibility with OpenCV 3.x
@@ -178,7 +181,7 @@ double ALVAR_EXPORT polyLinePointDist(CvPoint *PointList, int nPnts,CvPoint *C, 
   * \param points		Vector of points on the ellipse edge.
   * \param ellipse_box	OpenCV struct for the fitted ellipse.
  */
-void ALVAR_EXPORT FitCVEllipse(const std::vector<PointDouble> &points, CvBox2D& ellipse_box);
+void ALVAR_EXPORT FitCVEllipse(const std::vector<PointDouble> &points, cv::RotatedRect& ellipse_box);
 
 int ALVAR_EXPORT exp_filt2(std::vector<double> &v,std:: vector<double> &ret, bool clamp);
 

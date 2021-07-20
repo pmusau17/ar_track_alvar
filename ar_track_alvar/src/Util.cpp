@@ -114,7 +114,7 @@ double polyLinePointDist(CvPoint *PointList, int nPnts,CvPoint *C, int *index, i
 
 //ttesis
 
-void FitCVEllipse(const vector<PointDouble> &points, CvBox2D& ellipse_box)
+void FitCVEllipse(const vector<PointDouble> &points, cv::RotatedRect& ellipse_box)
 {
 	if(points.size() < 8) return;
 
@@ -123,8 +123,8 @@ void FitCVEllipse(const vector<PointDouble> &points, CvBox2D& ellipse_box)
 	{
 		CV_MAT_ELEM(*vector, CvPoint2D64f, 0, i) = (CvPoint2D64f)points[i];
 	}
-	ellipse_box = cvFitEllipse2(vector);
-	cvReleaseMat(&vector);
+	ellipse_box = cv::fitEllipse(cv::cvarrToMat(&vector));
+	//cvReleaseMat(&vector);
 }
 
 int exp_filt2(vector<double> &v, vector<double> &ret, bool clamp)
