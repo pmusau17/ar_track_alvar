@@ -152,9 +152,9 @@ bool MultiMarker::LoadXML(const char* fname) {
 			if (!xml_corner) return false;
 
 			cv::Point3f X;
-			if (xml_corner->QueryDoubleAttribute("x", &X.x) != TIXML_SUCCESS) return false;
-			if (xml_corner->QueryDoubleAttribute("y", &X.y) != TIXML_SUCCESS) return false;
-			if (xml_corner->QueryDoubleAttribute("z", &X.z) != TIXML_SUCCESS) return false;
+			if (xml_corner->QueryDoubleAttribute("x", (double *)&X.x) != TIXML_SUCCESS) return false;
+			if (xml_corner->QueryDoubleAttribute("y", (double *)&X.y) != TIXML_SUCCESS) return false;
+			if (xml_corner->QueryDoubleAttribute("z", (double *)&X.z) != TIXML_SUCCESS) return false;
 			pointcloud[pointcloud_index(marker_indices[i], j)] = X;
 
 			xml_corner = (TiXmlElement*)xml_corner->NextSibling("corner");
@@ -348,7 +348,7 @@ int MultiMarker::_SetTrackMarkers(MarkerDetectorImpl &marker_detector, Camera* c
 			pw[1] = pointcloud[pointcloud_index(id, 1)];
 			pw[2] = pointcloud[pointcloud_index(id, 2)];
 			pw[3] = pointcloud[pointcloud_index(id, 3)];
-			vector<CvPoint2D64f> pi(4);
+			vector<cv::Point2f> pi(4);
 			cam->ProjectPoints(pw, &pose, pi);
 			PointDouble p[4]; // TODO: This type copying is so silly!!!
 			p[0].x = pi[0].x;

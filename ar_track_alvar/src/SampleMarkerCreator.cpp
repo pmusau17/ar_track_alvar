@@ -1,10 +1,10 @@
 #include "ar_track_alvar/MultiMarker.h"
-#include "highgui.h"
+#include <opencv2/highgui/highgui_c.h>
 using namespace std;
 using namespace alvar;
 
 struct State {
-    IplImage *img;
+    cv::Mat img;
     stringstream filename;
     double minx, miny, maxx, maxy; // top-left and bottom-right in pixel units
     MultiMarker multi_marker;
@@ -44,7 +44,7 @@ struct State {
             MarkerData md(marker_side_len, content_res, margin_res);
             int side_len = int(marker_side_len*units+0.5);
             if (img == 0) {
-                img = cvCreateImage(cvSize(side_len, side_len), IPL_DEPTH_8U, 1);
+                img = cv::Mat(cv::Size(side_len, side_len),CV_8UC1);
                 filename.str("");
                 filename<<"MarkerData";
                 minx = (posx*units) - (marker_side_len*units/2.0);

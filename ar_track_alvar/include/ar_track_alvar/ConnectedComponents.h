@@ -131,7 +131,7 @@ public:
 	void LabelSquares(cv::Mat* image, bool visualize=false);
 
 	// TODO: Releases memory inside, cannot return CvSeq*
-	CvSeq* LabelImage(cv::Mat* image, int min_size, bool approx=false);
+	std::vector<cv::Rect> LabelImage(cv::Mat* image, int min_size, bool approx=false);
 };
 
 } // namespace alvar

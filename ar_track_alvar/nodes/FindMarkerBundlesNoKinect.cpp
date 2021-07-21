@@ -41,12 +41,12 @@
 #include "ar_track_alvar/MultiMarkerInitializer.h"
 #include "ar_track_alvar/Shared.h"
 #include <cv_bridge/cv_bridge.h>
-#include <ar_track_alvar_msgs/AlvarMarker.h>
-#include <ar_track_alvar_msgs/AlvarMarkers.h>
+#include <ar_track_alvar_msgs/msg/alvar_marker.hpp>
+#include <ar_track_alvar_msgs/msg/alvar_markers.hpp>
 #include "tf2_ros/buffer.h"
 #include "tf2_ros/transform_listener.h"
-#include <tf/transform_broadcaster.h>
-#include <sensor_msgs/image_encodings.h>
+#include <tf2_ros/transform_broadcaster.h>
+#include <sensor_msgs/image_encodings.hpp>
 
 using namespace alvar;
 using namespace std;

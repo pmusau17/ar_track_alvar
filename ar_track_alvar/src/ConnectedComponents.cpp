@@ -114,141 +114,167 @@ void LabelingCvSeq::LabelSquares(cv::Mat* image, bool visualize)
     cv::adaptiveThreshold(*gray, *bw, 255, cv::ADAPTIVE_THRESH_MEAN_C, cv::THRESH_BINARY_INV, thresh_param1, thresh_param2);
     //cvThreshold(gray, bw, 127, 255, CV_THRESH_BINARY_INV);
 
-    CvSeq* contours;
-    CvSeq* squares = cvCreateSeq(0, sizeof(CvSeq), sizeof(CvSeq), storage);
-    CvSeq* square_contours = cvCreateSeq(0, sizeof(CvSeq), sizeof(CvSeq), storage);
 
-    cv::findContours(*bw, storage, &contours, sizeof(CvContour),
-        CV_RETR_LIST, CV_CHAIN_APPROX_NONE, cvPoint(0,0));
 
-    while(contours)
+	vector<vector<cv::Point> > contours;
+    //vector<Vec4i> hierarchy;
+	cv::findContours(*bw, contours, cv::RETR_TREE, cv::CHAIN_APPROX_SIMPLE );
+	vector<vector<cv::Point> > contours_poly( contours.size() );
+    vector<cv::Rect> boundRect(contours.size());
+
+
+    // CvSeq* contours;
+    // CvSeq* squares = cvCreateSeq(0, sizeof(CvSeq), sizeof(CvSeq), storage);
+    // CvSeq* square_contours = cvCreateSeq(0, sizeof(CvSeq), sizeof(CvSeq), storage);
+
+    
+	for( size_t i = 0; i < contours.size(); i++ )
     {
-        if(contours->total < _min_edge)
-        {
-            contours = contours->h_next;
-            continue;
-        }
-
-        CvSeq* result = cv::approxPolyDP(cv::cvarrToMat(contours), sizeof(CvContour), storage,
-                                     CV_POLY_APPROX_DP, cvContourPerimeter(contours)*0.035, 0 ); // TODO: Parameters?
-
-        if( result->total == 4 && CheckBorder(result, image->rows, image->cols) && 
-            fabs(cvContourArea(result,CV_WHOLE_SEQ)) > _min_area && // TODO check limits
-            cvCheckContourConvexity(result) ) // ttehop: Changed to 'contours' instead of 'result'
-        {
-                cvSeqPush(squares, result);
-                cvSeqPush(square_contours, contours);
-        }
-        contours = contours->h_next;
+        cv::approxPolyDP( contours[i], contours_poly[i], 3, true );
+        boundRect[i] = cv::boundingRect( contours_poly[i]);
+        // minEnclosingCircle( contours_poly[i], centers[i], radius[i] );
     }
-
-    _n_blobs = squares->total;
-    blob_corners.resize(_n_blobs);
-
-    // For every detected 4-corner blob
-    for(int i = 0; i < _n_blobs; ++i)
+	cv::RNG rng(12345);
+	for( size_t i = 0; i< contours.size(); i++ )
     {
-        vector<Line> fitted_lines(4);
-        blob_corners[i].resize(4);
-        CvSeq* sq = (CvSeq*)cv::getSeqElem(squares, i);
-        CvSeq* square_contour = (CvSeq*)cv::getSeqElem(square_contours, i);
+		cv::Scalar color = cv::Scalar( rng.uniform(0, 256), rng.uniform(0,256), rng.uniform(0,256) );
+		cv::drawContours(*image, contours_poly, (int)i, color );
+        cv::rectangle(*image, boundRect[i].tl(), boundRect[i].br(), color, 2 );
+	}
+
+
+
+
+    // while(contours)
+    // {
+    //     if(contours->total < _min_edge)
+    //     {
+    //         contours = contours->h_next;
+    //         continue;
+    //     }
+
+
+	// 	approxPolyDP( contours[i], contours_poly[i], 3, true );
+    //     CvSeq* result = cv::approxPolyDP(cv::cvarrToMat(contours), sizeof(CvContour), storage,
+    //                                  CV_POLY_APPROX_DP, cvContourPerimeter(contours)*0.035, 0 ); // TODO: Parameters?
+
+    //     if( result->total == 4 && CheckBorder(result, image->rows, image->cols) && 
+    //         fabs(cvContourArea(result,CV_WHOLE_SEQ)) > _min_area && // TODO check limits
+    //         cvCheckContourConvexity(result) ) // ttehop: Changed to 'contours' instead of 'result'
+    //     {
+    //             cvSeqPush(squares, result);
+    //             cvSeqPush(square_contours, contours);
+    //     }
+    //     contours = contours->h_next;
+    // }
+
+    // _n_blobs = squares->total;
+    // blob_corners.resize(_n_blobs);
+
+    // // For every detected 4-corner blob
+    // for(int i = 0; i < _n_blobs; ++i)
+    // {
+    //     vector<Line> fitted_lines(4);
+    //     blob_corners[i].resize(4);
+    //     CvSeq* sq = (CvSeq*)cv::getSeqElem(squares, i);
+    //     CvSeq* square_contour = (CvSeq*)cv::getSeqElem(square_contours, i);
         
-        for(int j = 0; j < 4; ++j)
-        {
-            CvPoint* pt0 = (CvPoint*)cv::getSeqElem(sq, j);
-            CvPoint* pt1 = (CvPoint*)cv::getSeqElem(sq, (j+1)%4);
-            int k0=-1, k1=-1;
-            for (int k = 0; k<square_contour->total; k++) {
-                CvPoint* pt2 = (CvPoint*)cv::getSeqElem(square_contour, k);
-                if ((pt0->x == pt2->x) && (pt0->y == pt2->y)) k0=k;
-                if ((pt1->x == pt2->x) && (pt1->y == pt2->y)) k1=k;
-            }
-            int len;
-            if (k1 >= k0) len = k1-k0-1; // neither k0 nor k1 are included
-            else len = square_contour->total-k0+k1-1;
-            if (len == 0) len = 1;
+    //     for(int j = 0; j < 4; ++j)
+    //     {
+    //         CvPoint* pt0 = (CvPoint*)cv::getSeqElem(sq, j);
+    //         CvPoint* pt1 = (CvPoint*)cv::getSeqElem(sq, (j+1)%4);
+    //         int k0=-1, k1=-1;
+    //         for (int k = 0; k<square_contour->total; k++) {
+    //             CvPoint* pt2 = (CvPoint*)cv::getSeqElem(square_contour, k);
+    //             if ((pt0->x == pt2->x) && (pt0->y == pt2->y)) k0=k;
+    //             if ((pt1->x == pt2->x) && (pt1->y == pt2->y)) k1=k;
+    //         }
+    //         int len;
+    //         if (k1 >= k0) len = k1-k0-1; // neither k0 nor k1 are included
+    //         else len = square_contour->total-k0+k1-1;
+    //         if (len == 0) len = 1;
 
-            CvMat* line_data = cvCreateMat(1, len, CV_32FC2);
-            for (int l=0; l<len; l++) {
-                int ll = (k0+l+1)%square_contour->total;
-                CvPoint* p = (CvPoint*)cv::getSeqElem(square_contour, ll);
-                CvPoint2D32f pp;
-                pp.x = float(p->x);
-                pp.y = float(p->y);
+    //         CvMat* line_data = cvCreateMat(1, len, CV_32FC2);
+    //         for (int l=0; l<len; l++) {
+    //             int ll = (k0+l+1)%square_contour->total;
+    //             CvPoint* p = (CvPoint*)cv::getSeqElem(square_contour, ll);
+    //             CvPoint2D32f pp;
+    //             pp.x = float(p->x);
+    //             pp.y = float(p->y);
 
-                // Undistort
-                if(cam)
-                    cam->Undistort(pp);
+    //             // Undistort
+    //             if(cam)
+    //                 cam->Undistort(pp);
 
-                CV_MAT_ELEM(*line_data, CvPoint2D32f, 0, l) = pp;
-            }
+    //             CV_MAT_ELEM(*line_data, CvPoint2D32f, 0, l) = pp;
+    //         }
 
-            // Fit edge and put to vector of edges
-            float params[4] = {0};
+    //         // Fit edge and put to vector of edges
+    //         cv::Vec4f params = {0};
 
-            // TODO: The detect_pose_grayscale is still under work...
-            /*
-            if (detect_pose_grayscale &&
-                (pt0->x > 3) && (pt0->y > 3) &&
-                (pt0->x < (gray->width-4)) &&
-                (pt0->y < (gray->height-4)))
-            {
-                // ttehop: Grayscale experiment
-                FitLineGray(line_data, params, gray);
-            }
-            */
-            cvFitLine(line_data, CV_DIST_L2, 0, 0.01, 0.01, params);
+    //         // TODO: The detect_pose_grayscale is still under work...
+    //         /*
+    //         if (detect_pose_grayscale &&
+    //             (pt0->x > 3) && (pt0->y > 3) &&
+    //             (pt0->x < (gray->width-4)) &&
+    //             (pt0->y < (gray->height-4)))
+    //         {
+    //             // ttehop: Grayscale experiment
+    //             FitLineGray(line_data, params, gray);
+    //         }
+    //         */
+    //         cvFitLine(line_data, CV_DIST_L2, 0, 0.01, 0.01, params);
 
-            //cvFitLine(line_data, CV_DIST_L2, 0, 0.01, 0.01, params);
-            ////cvFitLine(line_data, CV_DIST_HUBER, 0, 0.01, 0.01, params);
-            Line line = Line(params);
-            if(visualize) DrawLine(image, line);
-            fitted_lines[j] = line;
+    //         //cvFitLine(line_data, CV_DIST_L2, 0, 0.01, 0.01, params);
+    //         ////cvFitLine(line_data, CV_DIST_HUBER, 0, 0.01, 0.01, params);
+    //         Line line = Line(params);
+    //         if(visualize) DrawLine(image, line);
+    //         fitted_lines[j] = line;
 
-            cvReleaseMat(&line_data);
-        }
+    //         cvReleaseMat(&line_data);
+    //     }
 
-        // Calculated four intersection points
-        for(size_t j = 0; j < 4; ++j)
-        {
-            PointDouble intc = Intersection(fitted_lines[j],fitted_lines[(j+1)%4]);
+    //     // Calculated four intersection points
+    //     for(size_t j = 0; j < 4; ++j)
+    //     {
+    //         PointDouble intc = Intersection(fitted_lines[j],fitted_lines[(j+1)%4]);
 
-            // TODO: Instead, test OpenCV find corner in sub-pix...
-            //CvPoint2D32f pt = cvPoint2D32f(intc.x, intc.y);
-            //cvFindCornerSubPix(gray, &pt,
-            //                   1, cvSize(3,3), cvSize(-1,-1),
-            //                   cvTermCriteria(
-            //                   CV_TERMCRIT_ITER+CV_TERMCRIT_EPS,10,1e-4));
+    //         // TODO: Instead, test OpenCV find corner in sub-pix...
+    //         //CvPoint2D32f pt = cvPoint2D32f(intc.x, intc.y);
+    //         //cvFindCornerSubPix(gray, &pt,
+    //         //                   1, cvSize(3,3), cvSize(-1,-1),
+    //         //                   cvTermCriteria(
+    //         //                   CV_TERMCRIT_ITER+CV_TERMCRIT_EPS,10,1e-4));
             
-            // TODO: Now there is a wierd systematic 0.5 pixel error that is fixed here...
-            //intc.x += 0.5;
-            //intc.y += 0.5;
+    //         // TODO: Now there is a wierd systematic 0.5 pixel error that is fixed here...
+    //         //intc.x += 0.5;
+    //         //intc.y += 0.5;
 
-            if(cam) cam->Distort(intc);
+    //         if(cam) cam->Distort(intc);
 
-            // TODO: Should we make this always counter-clockwise or clockwise?
-            /*
-            if (image->origin && j == 1) blob_corners[i][3] = intc;
-            else if (image->origin && j == 3) blob_corners[i][1] = intc;
-            else blob_corners[i][j] = intc;
-            */
-            blob_corners[i][j] = intc;
-        }
-        if (visualize) {
-            for(size_t j = 0; j < 4; ++j) {
-                PointDouble &intc = blob_corners[i][j];
-                if (j == 0) cv::circle(image, cvPoint(int(intc.x), int(intc.y)), 5, CV_RGB(255, 255, 255));
-                if (j == 1) cv::circle(image, cvPoint(int(intc.x), int(intc.y)), 5, CV_RGB(255, 0, 0));
-                if (j == 2) cv::circle(image, cvPoint(int(intc.x), int(intc.y)), 5, CV_RGB(0, 255, 0));
-                if (j == 3) cv::circle(image, cvPoint(int(intc.x), int(intc.y)), 5, CV_RGB(0, 0, 255));
-            }
-        }
-    }
+    //         // TODO: Should we make this always counter-clockwise or clockwise?
+    //         /*
+    //         if (image->origin && j == 1) blob_corners[i][3] = intc;
+    //         else if (image->origin && j == 3) blob_corners[i][1] = intc;
+    //         else blob_corners[i][j] = intc;
+    //         */
+    //         blob_corners[i][j] = intc;
+    //     }
+    //     if (visualize) {
+    //         for(size_t j = 0; j < 4; ++j) {
+    //             PointDouble &intc = blob_corners[i][j];
+    //             if (j == 0) cv::circle(*image, cvPoint(int(intc.x), int(intc.y)), 5, cv::Scalar(255, 255, 255));
+    //             if (j == 1) cv::circle(*image, cvPoint(int(intc.x), int(intc.y)), 5, cv::Scalar(255, 0, 0));
+    //             if (j == 2) cv::circle(*image, cvPoint(int(intc.x), int(intc.y)), 5, cv::Scalar(0, 255, 0));
+    //             if (j == 3) cv::circle(*image, cvPoint(int(intc.x), int(intc.y)), 5, cv::Scalar(0, 0, 255));
+    //         }
+    //     }
+    //}
 
-    cvClearMemStorage(storage);
+    // cvClearMemStorage(storage);
 }
 
-CvSeq* LabelingCvSeq::LabelImage(cv::Mat* image, int min_size, bool approx)
+vector<cv::Rect> LabelingCvSeq::LabelImage(cv::Mat* image, int min_size, bool approx)
 {
 	// assert(image->origin == 0); // Currently only top-left origin supported
 	if (gray && ((gray->rows != image->rows) || (gray->cols != image->cols))) {
@@ -290,43 +316,56 @@ CvSeq* LabelingCvSeq::LabelImage(cv::Mat* image, int min_size, bool approx)
 
 	cv::adaptiveThreshold(*gray, *bw, 255, cv::ADAPTIVE_THRESH_MEAN_C, cv::THRESH_BINARY_INV, thresh_param1, thresh_param2);
 
-	CvSeq* contours;
-	CvSeq* edges = cvCreateSeq(0, sizeof(CvSeq), sizeof(CvSeq), storage);
-	CvSeq* squares = cvCreateSeq(0, sizeof(CvSeq), sizeof(CvSeq), storage);
+	vector<vector<cv::Point> > contours;
+    //vector<Vec4i> hierarchy;
+	cv::findContours(*bw, contours, cv::RETR_TREE, cv::CHAIN_APPROX_SIMPLE );
+	vector<vector<cv::Point> > contours_poly( contours.size() );
+    vector<cv::Rect> boundRect(contours.size());
 
-	cv::findContours(bw, storage, &contours, sizeof(CvContour),
-		CV_RETR_LIST, CV_CHAIN_APPROX_NONE, cvPoint(0,0));
-	//cvFindContours(bw, storage, &contours, sizeof(CvContour),
-	//	CV_RETR_LIST, CV_CHAIN_APPROX_SIMPLE, cvPoint(0,0));
+	for( size_t i = 0; i < contours.size(); i++ )
+    {
+        cv::approxPolyDP( contours[i], contours_poly[i], 3, true );
+       	boundRect[i] = cv::boundingRect( contours_poly[i]);
+        // minEnclosingCircle( contours_poly[i], centers[i], radius[i] );
+    }
+
+	// CvSeq* contours;
+	// CvSeq* edges = cvCreateSeq(0, sizeof(CvSeq), sizeof(CvSeq), storage);
+	// CvSeq* squares = cvCreateSeq(0, sizeof(CvSeq), sizeof(CvSeq), storage);
+
+	// cv::findContours(bw, storage, &contours, sizeof(CvContour),
+	// 	CV_RETR_LIST, CV_CHAIN_APPROX_NONE, cvPoint(0,0));
+	// //cvFindContours(bw, storage, &contours, sizeof(CvContour),
+	// //	CV_RETR_LIST, CV_CHAIN_APPROX_SIMPLE, cvPoint(0,0));
 
 
-	while(contours)
-	{
-		if(contours->total < min_size)
-		{
-			contours = contours->h_next;
-			continue;
-		}
+	// while(contours)
+	// {
+	// 	if(contours->total < min_size)
+	// 	{
+	// 		contours = contours->h_next;
+	// 		continue;
+	// 	}
 		
-		if(approx)
-		{
-			CvSeq* result = cv::approxPolyDP(contours, sizeof(CvContour), storage,
-										CV_POLY_APPROX_DP, cvContourPerimeter(contours)*0.02, 0 ); // TODO: Parameters?
+	// 	if(approx)
+	// 	{
+	// 		CvSeq* result = cv::approxPolyDP(contours, sizeof(CvContour), storage,
+	// 									CV_POLY_APPROX_DP, cvContourPerimeter(contours)*0.02, 0 ); // TODO: Parameters?
 
-			if(cvCheckContourConvexity(result))
-			{
-					cvSeqPush(squares, result);
-			}
-		}	
-		else
-			cvSeqPush(squares, contours);
+	// 		if(cvCheckContourConvexity(result))
+	// 		{
+	// 				cvSeqPush(squares, result);
+	// 		}
+	// 	}	
+	// 	else
+	// 		cvSeqPush(squares, contours);
 	
-		contours = contours->h_next;
-	}
+	// 	contours = contours->h_next;
+	// }
 
-	cvClearMemStorage(storage);
+	// cvClearMemStorage(storage);
 
-	return squares;
+	return boundRect;
 }
 
 inline int round(double x) {
@@ -394,34 +433,36 @@ void FitLineGray(CvMat *line_data, float params[4], cv::Mat *gray) {
 		dyy[i] = (yy[i]+yy[i+1])/2;
 	}
 
-	// Adjust the points
-	for (int l=0; l<line_data->cols; l++) {
-		CvPoint2D32f *p = (CvPoint2D32f*)CV_MAT_ELEM_PTR_FAST(*line_data, 0, l, sizeof(CvPoint2D32f));
+	CvMat temp1 = cvMat(*gray);
+	CvMat* temp2 = &temp1;
+	// // Adjust the points
+	// for (int l=0; l<line_data->cols; l++) {
+	// 	CvPoint2D32f *p = (CvPoint2D32f*)CV_MAT_ELEM_PTR_FAST(*line_data, 0, l, sizeof(CvPoint2D32f));
 
-		double dx=0, dy=0, ww=0;
-		for (int i=0; i<diff_win_size; i++) {
-			unsigned char c1 = (unsigned char)gray->imageData[int((p->y+yy[i])*gray->widthStep+(p->x+xx[i]))];
-			unsigned char c2 = (unsigned char)gray->imageData[int((p->y+yy[i+1])*gray->widthStep+(p->x+xx[i+1]))];
+	// 	double dx=0, dy=0, ww=0;
+	// 	for (int i=0; i<diff_win_size; i++) {
+	// 		unsigned char c1 = (unsigned char)temp2->imageData[int((p->y+yy[i])*temp2->widthStep+(p->x+xx[i]))];
+	// 		unsigned char c2 = (unsigned char)temp2->imageData[int((p->y+yy[i+1])*temp2->widthStep+(p->x+xx[i+1]))];
 #ifdef SHOW_DEBUG
 			cv::circle(tmp2, cvPoint((p->x+xx[i])*5+2,(p->y+yy[i])*5+2), 0, CV_RGB(0,0,255));
 			cv::circle(tmp2, cvPoint((p->x+xx[i+1])*5+2,(p->y+yy[i+1])*5+2), 0, CV_RGB(0,0,255));
 #endif
-			double w = absdiff(c1, c2);
-			dx += dxx[i]*w;
-			dy += dyy[i]*w;
-			ww += w;
-		}
-		if (ww > 0) {
-			dx /= ww; dy /= ww;
-		}
+		// 	double w = absdiff(c1, c2);
+		// 	dx += dxx[i]*w;
+		// 	dy += dyy[i]*w;
+		// 	ww += w;
+		// }
+		// if (ww > 0) {
+		// 	dx /= ww; dy /= ww;
+		// }
 #ifdef SHOW_DEBUG
 		cvLine(tmp2, cvPoint(p->x*5+2,p->y*5+2), cvPoint((p->x+dx)*5+2, (p->y+dy)*5+2), CV_RGB(0,255,0));
 		p->x += float(dx); p->y += float(dy);
 		cv::circle(tmp2, cvPoint(p->x*5+2,p->y*5+2), 0, CV_RGB(255,0,0));
 #else
-		p->x += float(dx); p->y += float(dy);
+		// p->x += float(dx); p->y += float(dy);
 #endif
-	}
+	
 
 #ifdef SHOW_DEBUG
 	cvNamedWindow("tmp");
