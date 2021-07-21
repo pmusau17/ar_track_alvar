@@ -75,7 +75,7 @@ namespace alvar {
 		detect_pose_grayscale = _detect_pose_grayscale;
 	}
 
-	int MarkerDetectorImpl::Detect(IplImage *image,
+	int MarkerDetectorImpl::Detect(cv::Mat *image,
 			   Camera *cam,
 			   bool track,
 			   bool visualize,
@@ -84,7 +84,7 @@ namespace alvar {
 			   LabelingMethod labeling_method,
 			   bool update_pose)
 	{
-		assert(image->origin == 0); // Currently only top-left origin supported
+		//assert(image->origin == 0); // Currently only top-left origin supported
 		double error=-1;
 
 		// Swap marker tables
@@ -104,7 +104,7 @@ namespace alvar {
 		labeling->SetCamera(cam);
 		labeling->LabelSquares(image, visualize);
 		vector<vector<PointDouble> >& blob_corners = labeling->blob_corners;
-		IplImage* gray = labeling->gray;
+		cv::Mat* gray = labeling->gray;
 
 		int orientation;
 
@@ -165,9 +165,9 @@ namespace alvar {
 		return (int) _markers_size();
 	}
 
-	int MarkerDetectorImpl::DetectAdditional(IplImage *image, Camera *cam, bool visualize, double max_track_error)
+	int MarkerDetectorImpl::DetectAdditional(cv::Mat *image, Camera *cam, bool visualize, double max_track_error)
 	{
-		assert(image->origin == 0); // Currently only top-left origin supported
+		//assert(image->origin == 0); // Currently only top-left origin supported
 		if(!labeling) return -1;
 		double error=-1;
 		int orientation;

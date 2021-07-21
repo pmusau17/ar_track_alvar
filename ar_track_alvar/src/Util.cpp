@@ -121,7 +121,7 @@ void FitCVEllipse(const vector<PointDouble> &points, cv::RotatedRect& ellipse_bo
 	CvMat* vector = cvCreateMat(1, int(points.size()), CV_64FC2);
 	for(size_t i = 0; i < points.size(); ++i)
 	{
-		CV_MAT_ELEM(*vector, CvPoint2D64f, 0, i) = (CvPoint2D64f)points[i];
+		CV_MAT_ELEM(*vector, cv::Point2f, 0, i) = (cv::Point2f)points[i];
 	}
 	ellipse_box = cv::fitEllipse(cv::cvarrToMat(&vector));
 	//cvReleaseMat(&vector);

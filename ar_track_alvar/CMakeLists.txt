@@ -78,8 +78,8 @@ add_library(ar_track_alvar
     src/Camera.cpp
     src/CaptureDevice.cpp
     src/Pose.cpp
-    #src/Marker.cpp
-    #src/MarkerDetector.cpp
+    src/Marker.cpp
+    src/MarkerDetector.cpp
     src/Bitset.cpp
     src/Rotation.cpp
     src/CvTestbed.cpp
@@ -105,8 +105,8 @@ add_library(ar_track_alvar
     src/Optimization.cpp
     # src/MultiMarker.cpp
     # src/MultiMarkerBundle.cpp
-    # src/MultiMarkerInitializer.cpp)
-)
+    # src/MultiMarkerInitializer.cpp
+    )
     
 target_link_libraries(${PROJECT_NAME} ${OpenCV_LIBRARIES} ${TinyXML_LIBRARIES})
 ament_target_dependencies(ar_track_alvar ${dependencies})

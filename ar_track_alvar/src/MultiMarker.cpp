@@ -72,7 +72,7 @@ bool MultiMarker::SaveXML(const char* fname) {
 		for(int j = 0; j < 4; ++j) {
 			TiXmlElement *xml_corner = new TiXmlElement("corner");
 			xml_marker->LinkEndChild(xml_corner);
-			CvPoint3D64f X = pointcloud[pointcloud_index(marker_indices[i], j)];
+			cv::Point3f X = pointcloud[pointcloud_index(marker_indices[i], j)];
 			xml_corner->SetDoubleAttribute("x", X.x);
 			xml_corner->SetDoubleAttribute("y", X.y);
 			xml_corner->SetDoubleAttribute("z", X.z);
@@ -103,7 +103,7 @@ bool MultiMarker::SaveText(const char* fname) {
 	for(size_t i = 0; i < n_markers; ++i)
 		for(size_t j = 0; j < 4; ++j)
 		{
-			CvPoint3D64f X = pointcloud[pointcloud_index(marker_indices[i], j)];
+			cv::Point3f X = pointcloud[pointcloud_index(marker_indices[i], j)];
 			file_op<<X.x<<" "<<X.y<<" "<<X.z<<endl;
 			
 		}
@@ -151,7 +151,7 @@ bool MultiMarker::LoadXML(const char* fname) {
 		for(int j = 0; j < 4; ++j) {
 			if (!xml_corner) return false;
 
-			CvPoint3D64f X;
+			cv::Point3f X;
 			if (xml_corner->QueryDoubleAttribute("x", &X.x) != TIXML_SUCCESS) return false;
 			if (xml_corner->QueryDoubleAttribute("y", &X.y) != TIXML_SUCCESS) return false;
 			if (xml_corner->QueryDoubleAttribute("z", &X.z) != TIXML_SUCCESS) return false;
@@ -190,7 +190,7 @@ bool MultiMarker::LoadText(const char* fname) {
 	for(size_t i = 0; i < n_markers; ++i)
 		for(size_t j = 0; j < 4; ++j)
 		{
-			CvPoint3D64f X;
+			cv::Point3f X;
 			file_op>>X.x;
 			file_op>>X.y;
 			file_op>>X.z;
@@ -226,7 +226,7 @@ void MultiMarker::PointCloudReset() {
 	pointcloud.clear();
 }
 
-void MultiMarker::PointCloudCorners3d(double edge_length, Pose &pose, CvPoint3D64f corners[4]) {
+void MultiMarker::PointCloudCorners3d(double edge_length, Pose &pose, cv::Point3f corners[4]) {
 	// Transformation from origin to current marker
 	CvMat *m3 = cvCreateMat(4,4,CV_64F); cvSetIdentity(m3);
 	pose.GetMatrix(m3);
@@ -262,7 +262,7 @@ void MultiMarker::PointCloudCorners3d(double edge_length, Pose &pose, CvPoint3D6
 }
 
 void MultiMarker::PointCloudAdd(int marker_id, double edge_length, Pose &pose) {
-	CvPoint3D64f corners[4];
+	cv::Point3f corners[4];
 	PointCloudCorners3d(edge_length, pose, corners);
 	for(size_t j = 0; j < 4; ++j) {
 		pointcloud[pointcloud_index(marker_id, j, true)] = corners[j];
@@ -281,7 +281,7 @@ void MultiMarker::PointCloudCopy(const MultiMarker *m) {
 
 void MultiMarker::PointCloudGet(int marker_id, int point,
                                 double &x, double &y, double &z) {
-  CvPoint3D64f p3d = pointcloud[pointcloud_index(marker_id, point)];
+  cv::Point3f p3d = pointcloud[pointcloud_index(marker_id, point)];
   x = p3d.x;
   y = p3d.y;
   z = p3d.z;
@@ -293,8 +293,8 @@ bool MultiMarker::IsValidMarker(int marker_id) {
 }
 
 
-double MultiMarker::_GetPose(MarkerIterator &begin, MarkerIterator &end, Camera* cam, Pose& pose, IplImage* image) {
-	vector<CvPoint3D64f> world_points;
+double MultiMarker::_GetPose(MarkerIterator &begin, MarkerIterator &end, Camera* cam, Pose& pose, cv::Mat* image) {
+	vector<cv::Point3f> world_points;
 	vector<PointDouble>  image_points;
 
 	// Reset the marker_status to 1 for all markers in point_cloud
@@ -314,10 +314,10 @@ double MultiMarker::_GetPose(MarkerIterator &begin, MarkerIterator &end, Camera*
 		if (marker_status[index] > 0) {
 			for(size_t j = 0; j < marker->marker_corners.size(); ++j)
 			{
-				CvPoint3D64f Xnew = pointcloud[pointcloud_index(id, (int)j)];
+				cv::Point3f Xnew = pointcloud[pointcloud_index(id, (int)j)];
 				world_points.push_back(Xnew);
 				image_points.push_back(marker->marker_corners_img.at(j));
-				if (image) cvCircle(image, cvPoint(int(marker->marker_corners_img[j].x), int(marker->marker_corners_img[j].y)), 3, CV_RGB(0,255,0));
+				if (image) cv::circle(*image, cvPoint(int(marker->marker_corners_img[j].x), int(marker->marker_corners_img[j].y)), 3, cv::Scalar(0,255,0));
 			}
 			marker_status[index] = 2; // Used for tracking
 		}
@@ -336,14 +336,14 @@ double MultiMarker::_GetPose(MarkerIterator &begin, MarkerIterator &end, Camera*
 }
 
 
-int MultiMarker::_SetTrackMarkers(MarkerDetectorImpl &marker_detector, Camera* cam, Pose& pose, IplImage *image) {
+int MultiMarker::_SetTrackMarkers(MarkerDetectorImpl &marker_detector, Camera* cam, Pose& pose, cv::Mat *image) {
 	int count=0;
 	marker_detector.TrackMarkersReset();
 	for(size_t i = 0; i < marker_indices.size(); ++i) {
 		int id = marker_indices[i];
 		// If the marker wasn't tracked lets add it to be trackable
 		if (marker_status[i] == 1) {
-			vector<CvPoint3D64f> pw(4);
+			vector<cv::Point3f> pw(4);
 			pw[0] = pointcloud[pointcloud_index(id, 0)];
 			pw[1] = pointcloud[pointcloud_index(id, 1)];
 			pw[2] = pointcloud[pointcloud_index(id, 2)];
@@ -360,10 +360,10 @@ int MultiMarker::_SetTrackMarkers(MarkerDetectorImpl &marker_detector, Camera* c
 			p[3].x = pi[3].x;
 			p[3].y = pi[3].y;
 			if (image) {
-				cvLine(image, cvPoint(int(p[0].x), int(p[0].y)), cvPoint(int(p[1].x), int(p[1].y)), CV_RGB(255,0,0));
-				cvLine(image, cvPoint(int(p[1].x), int(p[1].y)), cvPoint(int(p[2].x), int(p[2].y)), CV_RGB(255,0,0));
-				cvLine(image, cvPoint(int(p[2].x), int(p[2].y)), cvPoint(int(p[3].x), int(p[3].y)), CV_RGB(255,0,0));
-				cvLine(image, cvPoint(int(p[3].x), int(p[3].y)), cvPoint(int(p[0].x), int(p[0].y)), CV_RGB(255,0,0));
+				cv::line(*image, cvPoint(int(p[0].x), int(p[0].y)), cvPoint(int(p[1].x), int(p[1].y)), cv::Scalar(255,0,0));
+				cv::line(*image, cvPoint(int(p[1].x), int(p[1].y)), cvPoint(int(p[2].x), int(p[2].y)), cv::Scalar(255,0,0));
+				cv::line(*image, cvPoint(int(p[2].x), int(p[2].y)), cvPoint(int(p[3].x), int(p[3].y)), cv::Scalar(255,0,0));
+				cv::line(*image, cvPoint(int(p[3].x), int(p[3].y)), cvPoint(int(p[0].x), int(p[0].y)), cv::Scalar(255,0,0));
 			}
 			marker_detector.TrackMarkerAdd(id, p);
 			count++;

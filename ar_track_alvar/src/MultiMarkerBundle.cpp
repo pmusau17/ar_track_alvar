@@ -88,9 +88,7 @@ void Est(CvMat* state, CvMat* estimation, void *param)
 			double proj[2]={0};
 			CvMat mat_proj = cvMat(1, 1, CV_64FC2, proj);
 
-			cvProjectPoints2(&mat_object_points, &mat_rotation_vector,
-				&mat_translation_vector, &(camera->calib_K),
-				&(camera->calib_D), &mat_proj);
+			cv::projectPoints(cv::cvarrToMat(&mat_object_points), cv::cvarrToMat(&mat_rotation_vector),cv::cvarrToMat(&mat_translation_vector), &(camera->calib_K),&(camera->calib_D), &mat_proj);
 
 			index = i*n_points*2 + j*2;
 			estimation->data.db[index+0] = proj[0];

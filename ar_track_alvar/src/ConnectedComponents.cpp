@@ -41,10 +41,6 @@ Labeling::Labeling()
 
 Labeling::~Labeling()
 {
-	if(gray)
-		cvReleaseImage(&gray);
-	if(bw)
-		cvReleaseImage(&bw);
 }
 
 bool Labeling::CheckBorder(CvSeq* contour, int width, int height)
@@ -52,7 +48,7 @@ bool Labeling::CheckBorder(CvSeq* contour, int width, int height)
 	bool ret = true;
 	for(int i = 0; i < contour->total; ++i)
 	{
-		CvPoint* pt = (CvPoint*)cvGetSeqElem(contour, i);
+		CvPoint* pt = (CvPoint*)cv::getSeqElem(contour, i);
 		if((pt->x <= 1) || (pt->x >= width-2) || (pt->y <= 1) || (pt->y >= height-2)) ret = false;
 	}
 	return ret;
@@ -74,39 +70,55 @@ void LabelingCvSeq::SetOptions(bool _detect_pose_grayscale) {
     detect_pose_grayscale = _detect_pose_grayscale;
 }
 
-void LabelingCvSeq::LabelSquares(IplImage* image, bool visualize)
+void LabelingCvSeq::LabelSquares(cv::Mat* image, bool visualize)
 {
 
-    if (gray && ((gray->width != image->width) || (gray->height != image->height))) {
-        cvReleaseImage(&gray); gray=NULL;
-        if (bw) cvReleaseImage(&bw); bw=NULL;
+    if (gray && ((gray->rows != image->rows) || (gray->cols != image->cols))) {
+        // cvReleaseImage(&gray); 
+		gray=NULL;
+        // if (bw) cvReleaseImage(&bw); 
+		bw=NULL;
     }
     if (gray == NULL) {
-        gray = cvCreateImage(cvSize(image->width, image->height), IPL_DEPTH_8U, 1);
-        gray->origin = image->origin;
-        bw = cvCreateImage(cvSize(image->width, image->height), IPL_DEPTH_8U, 1);
-        bw->origin = image->origin;
+
+		cv::Mat temp = cv::Mat(cv::Size(image->rows, image->cols),CV_8UC1);
+
+        gray = &temp;
+
+		cv::Mat temp2 = cv::Mat(cv::Size(image->rows, image->cols),CV_8UC1);
+        //gray->origin = image->origin;
+        bw = &temp2;
+        //bw->origin = image->origin;
     }
 
     // Convert grayscale and threshold
-    if(image->nChannels == 4)
-        cvCvtColor(image, gray, CV_RGBA2GRAY);
-    else if(image->nChannels == 3)
-        cvCvtColor(image, gray, CV_RGB2GRAY);
-    else if(image->nChannels == 1)
-        cvCopy(image, gray);
-    else {
+    if(image->channels() == 4)
+	{
+        cv::cvtColor(*image, *gray,   cv::COLOR_RGB2GRAY);
+	}
+    else if(image->channels() == 3)
+	{
+        cv::cvtColor(*image, *gray,   cv::COLOR_RGB2GRAY);
+	}
+    else if(image->channels() == 1)
+	{
+		cv::Mat tmp = image->clone();
+		gray = &tmp;
+        //cvCopy(image, gray);
+	}
+    else 
+	{
         cerr<<"Unsupported image format"<<endl;
     }
 
-    cvAdaptiveThreshold(gray, bw, 255, CV_ADAPTIVE_THRESH_MEAN_C, CV_THRESH_BINARY_INV, thresh_param1, thresh_param2);
+    cv::adaptiveThreshold(*gray, *bw, 255, cv::ADAPTIVE_THRESH_MEAN_C, cv::THRESH_BINARY_INV, thresh_param1, thresh_param2);
     //cvThreshold(gray, bw, 127, 255, CV_THRESH_BINARY_INV);
 
     CvSeq* contours;
     CvSeq* squares = cvCreateSeq(0, sizeof(CvSeq), sizeof(CvSeq), storage);
     CvSeq* square_contours = cvCreateSeq(0, sizeof(CvSeq), sizeof(CvSeq), storage);
 
-    cvFindContours(bw, storage, &contours, sizeof(CvContour),
+    cv::findContours(*bw, storage, &contours, sizeof(CvContour),
         CV_RETR_LIST, CV_CHAIN_APPROX_NONE, cvPoint(0,0));
 
     while(contours)
@@ -117,10 +129,10 @@ void LabelingCvSeq::LabelSquares(IplImage* image, bool visualize)
             continue;
         }
 
-        CvSeq* result = cvApproxPoly(contours, sizeof(CvContour), storage,
+        CvSeq* result = cv::approxPolyDP(cv::cvarrToMat(contours), sizeof(CvContour), storage,
                                      CV_POLY_APPROX_DP, cvContourPerimeter(contours)*0.035, 0 ); // TODO: Parameters?
 
-        if( result->total == 4 && CheckBorder(result, image->width, image->height) && 
+        if( result->total == 4 && CheckBorder(result, image->rows, image->cols) && 
             fabs(cvContourArea(result,CV_WHOLE_SEQ)) > _min_area && // TODO check limits
             cvCheckContourConvexity(result) ) // ttehop: Changed to 'contours' instead of 'result'
         {
@@ -138,16 +150,16 @@ void LabelingCvSeq::LabelSquares(IplImage* image, bool visualize)
     {
         vector<Line> fitted_lines(4);
         blob_corners[i].resize(4);
-        CvSeq* sq = (CvSeq*)cvGetSeqElem(squares, i);
-        CvSeq* square_contour = (CvSeq*)cvGetSeqElem(square_contours, i);
+        CvSeq* sq = (CvSeq*)cv::getSeqElem(squares, i);
+        CvSeq* square_contour = (CvSeq*)cv::getSeqElem(square_contours, i);
         
         for(int j = 0; j < 4; ++j)
         {
-            CvPoint* pt0 = (CvPoint*)cvGetSeqElem(sq, j);
-            CvPoint* pt1 = (CvPoint*)cvGetSeqElem(sq, (j+1)%4);
+            CvPoint* pt0 = (CvPoint*)cv::getSeqElem(sq, j);
+            CvPoint* pt1 = (CvPoint*)cv::getSeqElem(sq, (j+1)%4);
             int k0=-1, k1=-1;
             for (int k = 0; k<square_contour->total; k++) {
-                CvPoint* pt2 = (CvPoint*)cvGetSeqElem(square_contour, k);
+                CvPoint* pt2 = (CvPoint*)cv::getSeqElem(square_contour, k);
                 if ((pt0->x == pt2->x) && (pt0->y == pt2->y)) k0=k;
                 if ((pt1->x == pt2->x) && (pt1->y == pt2->y)) k1=k;
             }
@@ -159,7 +171,7 @@ void LabelingCvSeq::LabelSquares(IplImage* image, bool visualize)
             CvMat* line_data = cvCreateMat(1, len, CV_32FC2);
             for (int l=0; l<len; l++) {
                 int ll = (k0+l+1)%square_contour->total;
-                CvPoint* p = (CvPoint*)cvGetSeqElem(square_contour, ll);
+                CvPoint* p = (CvPoint*)cv::getSeqElem(square_contour, ll);
                 CvPoint2D32f pp;
                 pp.x = float(p->x);
                 pp.y = float(p->y);
@@ -225,10 +237,10 @@ void LabelingCvSeq::LabelSquares(IplImage* image, bool visualize)
         if (visualize) {
             for(size_t j = 0; j < 4; ++j) {
                 PointDouble &intc = blob_corners[i][j];
-                if (j == 0) cvCircle(image, cvPoint(int(intc.x), int(intc.y)), 5, CV_RGB(255, 255, 255));
-                if (j == 1) cvCircle(image, cvPoint(int(intc.x), int(intc.y)), 5, CV_RGB(255, 0, 0));
-                if (j == 2) cvCircle(image, cvPoint(int(intc.x), int(intc.y)), 5, CV_RGB(0, 255, 0));
-                if (j == 3) cvCircle(image, cvPoint(int(intc.x), int(intc.y)), 5, CV_RGB(0, 0, 255));
+                if (j == 0) cv::circle(image, cvPoint(int(intc.x), int(intc.y)), 5, CV_RGB(255, 255, 255));
+                if (j == 1) cv::circle(image, cvPoint(int(intc.x), int(intc.y)), 5, CV_RGB(255, 0, 0));
+                if (j == 2) cv::circle(image, cvPoint(int(intc.x), int(intc.y)), 5, CV_RGB(0, 255, 0));
+                if (j == 3) cv::circle(image, cvPoint(int(intc.x), int(intc.y)), 5, CV_RGB(0, 0, 255));
             }
         }
     }
@@ -236,38 +248,53 @@ void LabelingCvSeq::LabelSquares(IplImage* image, bool visualize)
     cvClearMemStorage(storage);
 }
 
-CvSeq* LabelingCvSeq::LabelImage(IplImage* image, int min_size, bool approx)
+CvSeq* LabelingCvSeq::LabelImage(cv::Mat* image, int min_size, bool approx)
 {
-	assert(image->origin == 0); // Currently only top-left origin supported
-	if (gray && ((gray->width != image->width) || (gray->height != image->height))) {
-		cvReleaseImage(&gray); gray=NULL;
-		if (bw) cvReleaseImage(&bw); bw=NULL;
+	// assert(image->origin == 0); // Currently only top-left origin supported
+	if (gray && ((gray->rows != image->rows) || (gray->cols != image->cols))) {
+		// cvReleaseImage(&gray); 
+		gray=NULL;
+		// if (bw) cvReleaseImage(&bw); 
+		bw=NULL;
 	}
 	if (gray == NULL) {
-		gray = cvCreateImage(cvSize(image->width, image->height), IPL_DEPTH_8U, 1);
-		gray->origin = image->origin;
-		bw = cvCreateImage(cvSize(image->width, image->height), IPL_DEPTH_8U, 1);
-		bw->origin = image->origin;
+
+		cv::Mat temp = cv::Mat(cv::Size(image->rows, image->cols),CV_8UC1);
+
+        gray = &temp;
+
+		cv::Mat temp2 = cv::Mat(cv::Size(image->rows, image->cols),CV_8UC1);
+        //gray->origin = image->origin;
+        bw = &temp2;
 	}
 
 	// Convert grayscale and threshold
-	if(image->nChannels == 4)
-		cvCvtColor(image, gray, CV_RGBA2GRAY);
-	else if(image->nChannels == 3)
-		cvCvtColor(image, gray, CV_RGB2GRAY);
-	else if(image->nChannels == 1)
-		cvCopy(image, gray);
-	else {
+	if(image->channels() == 4)
+	{
+		cv::cvtColor(*image, *gray,   cv::COLOR_RGB2GRAY);
+	}
+	else if(image->channels() == 3)
+	{
+		cv::cvtColor(*image, *gray,   cv::COLOR_RGB2GRAY);
+	}
+	else if(image->channels() == 1)
+	{
+		// cv::Copy(image, gray);
+		cv::Mat tmp = image->clone();
+		gray = &tmp;
+	}
+	else 
+	{
 		cerr<<"Unsupported image format"<<endl;
 	}
 
-	cvAdaptiveThreshold(gray, bw, 255, CV_ADAPTIVE_THRESH_MEAN_C, CV_THRESH_BINARY_INV, thresh_param1, thresh_param2);
+	cv::adaptiveThreshold(*gray, *bw, 255, cv::ADAPTIVE_THRESH_MEAN_C, cv::THRESH_BINARY_INV, thresh_param1, thresh_param2);
 
 	CvSeq* contours;
 	CvSeq* edges = cvCreateSeq(0, sizeof(CvSeq), sizeof(CvSeq), storage);
 	CvSeq* squares = cvCreateSeq(0, sizeof(CvSeq), sizeof(CvSeq), storage);
 
-	cvFindContours(bw, storage, &contours, sizeof(CvContour),
+	cv::findContours(bw, storage, &contours, sizeof(CvContour),
 		CV_RETR_LIST, CV_CHAIN_APPROX_NONE, cvPoint(0,0));
 	//cvFindContours(bw, storage, &contours, sizeof(CvContour),
 	//	CV_RETR_LIST, CV_CHAIN_APPROX_SIMPLE, cvPoint(0,0));
@@ -283,7 +310,7 @@ CvSeq* LabelingCvSeq::LabelImage(IplImage* image, int min_size, bool approx)
 		
 		if(approx)
 		{
-			CvSeq* result = cvApproxPoly(contours, sizeof(CvContour), storage,
+			CvSeq* result = cv::approxPolyDP(contours, sizeof(CvContour), storage,
 										CV_POLY_APPROX_DP, cvContourPerimeter(contours)*0.02, 0 ); // TODO: Parameters?
 
 			if(cvCheckContourConvexity(result))
@@ -317,7 +344,7 @@ inline T absdiff(T c1, T c2) {
 #endif
 
 // TODO: This should be in LabelingCvSeq ???
-void FitLineGray(CvMat *line_data, float params[4], IplImage *gray) {
+void FitLineGray(CvMat *line_data, float params[4], cv::Mat *gray) {
 	// this very simple approach works...
 	/*
 	float *cx = &(params[2]);
@@ -332,9 +359,9 @@ void FitLineGray(CvMat *line_data, float params[4], IplImage *gray) {
 	*/
 
 #ifdef SHOW_DEBUG
-	IplImage *tmp = cvCreateImage(cvSize(gray->width, gray->height), IPL_DEPTH_8U, 3);
-	IplImage *tmp2 = cvCreateImage(cvSize(gray->width*5, gray->height*5), IPL_DEPTH_8U, 3);
-	cvCvtColor(gray, tmp, CV_GRAY2RGB);
+	cv::Mat *tmp = cvCreateImage(cvSize(gray->rows, gray->cols), IPL_DEPTH_8U, 3);
+	cv::Mat *tmp2 = cvCreateImage(cvSize(gray->rows*5, gray->cols*5), IPL_DEPTH_8U, 3);
+	cvCvtColor(gray, tmp, cv::COLOR_RGB2GRAY);
 	cvResize(tmp, tmp2, CV_INTER_NN);
 #endif
 
@@ -376,8 +403,8 @@ void FitLineGray(CvMat *line_data, float params[4], IplImage *gray) {
 			unsigned char c1 = (unsigned char)gray->imageData[int((p->y+yy[i])*gray->widthStep+(p->x+xx[i]))];
 			unsigned char c2 = (unsigned char)gray->imageData[int((p->y+yy[i+1])*gray->widthStep+(p->x+xx[i+1]))];
 #ifdef SHOW_DEBUG
-			cvCircle(tmp2, cvPoint((p->x+xx[i])*5+2,(p->y+yy[i])*5+2), 0, CV_RGB(0,0,255));
-			cvCircle(tmp2, cvPoint((p->x+xx[i+1])*5+2,(p->y+yy[i+1])*5+2), 0, CV_RGB(0,0,255));
+			cv::circle(tmp2, cvPoint((p->x+xx[i])*5+2,(p->y+yy[i])*5+2), 0, CV_RGB(0,0,255));
+			cv::circle(tmp2, cvPoint((p->x+xx[i+1])*5+2,(p->y+yy[i+1])*5+2), 0, CV_RGB(0,0,255));
 #endif
 			double w = absdiff(c1, c2);
 			dx += dxx[i]*w;
@@ -390,7 +417,7 @@ void FitLineGray(CvMat *line_data, float params[4], IplImage *gray) {
 #ifdef SHOW_DEBUG
 		cvLine(tmp2, cvPoint(p->x*5+2,p->y*5+2), cvPoint((p->x+dx)*5+2, (p->y+dy)*5+2), CV_RGB(0,255,0));
 		p->x += float(dx); p->y += float(dy);
-		cvCircle(tmp2, cvPoint(p->x*5+2,p->y*5+2), 0, CV_RGB(255,0,0));
+		cv::circle(tmp2, cvPoint(p->x*5+2,p->y*5+2), 0, CV_RGB(255,0,0));
 #else
 		p->x += float(dx); p->y += float(dy);
 #endif

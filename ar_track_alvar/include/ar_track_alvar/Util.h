@@ -103,12 +103,12 @@ struct ALVAR_EXPORT Point : public C
 /** 
   *  \brief The default integer point type.
 */
-typedef ALVAR_EXPORT Point<CvPoint> PointInt;
+typedef ALVAR_EXPORT Point<cv::Point> PointInt;
 
 /**
   *  \brief The default double point type.
 */
-typedef ALVAR_EXPORT Point<CvPoint2D64f> PointDouble;
+typedef ALVAR_EXPORT Point<cv::Point2f> PointDouble;
 
 /** \brief Returns the squared distance of two points. 
   * \param p1	First point.

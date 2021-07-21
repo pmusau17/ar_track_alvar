@@ -52,10 +52,10 @@ namespace alvar {
   class ALVAR_EXPORT Marker
   {
   protected:
-    void VisualizeMarkerPose(IplImage *image, Camera *cam, double visualize2d_points[12][2], CvScalar color=CV_RGB(255,0,0)) const;
-    virtual void VisualizeMarkerContent(IplImage *image, Camera *cam, double datatext_point[2], double content_point[2]) const;
-    virtual void VisualizeMarkerError(IplImage *image, Camera *cam, double errortext_point[2]) const;
-    bool UpdateContentBasic(std::vector<Point<CvPoint2D64f> > &_marker_corners_img, IplImage *gray, Camera *cam, int frame_no = 0);
+    void VisualizeMarkerPose(cv::Mat *image, Camera *cam, double visualize2d_points[12][2], cv::Scalar color=cv::Scalar(255,0,0)) const;
+    virtual void VisualizeMarkerContent(cv::Mat *image, Camera *cam, double datatext_point[2], double content_point[2]) const;
+    virtual void VisualizeMarkerError(cv::Mat *image, Camera *cam, double errortext_point[2]) const;
+    bool UpdateContentBasic(std::vector<Point<cv::Point2f> > &_marker_corners_img, cv::Mat *gray, Camera *cam, int frame_no = 0);
 
   public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW  
@@ -67,16 +67,16 @@ namespace alvar {
      *  Returns the marker orientation and an error value describing the pixel error 
      *  relative to the marker diameter.
      */
-    void CompareCorners(std::vector<Point<CvPoint2D64f> > &_marker_corners_img, int *orientation, double *error);
+    void CompareCorners(std::vector<PointDouble> &_marker_corners_img, int *orientation, double *error);
     /** \brief Compares the marker corners with the previous match. 
      */
-    void CompareContent(std::vector<Point<CvPoint2D64f> > &_marker_corners_img, IplImage *gray, Camera *cam, int *orientation) const;
+    void CompareContent(std::vector<PointDouble> &_marker_corners_img, cv::Mat *gray, Camera *cam, int *orientation) const;
     /** \brief Updates the \e marker_content from the image using \e Homography
      */
-    virtual bool UpdateContent(std::vector<Point<CvPoint2D64f> > &_marker_corners_img, IplImage *gray, Camera *cam, int frame_no = 0);
+    virtual bool UpdateContent(std::vector<PointDouble> &_marker_corners_img, cv::Mat *gray, Camera *cam, int frame_no = 0);
     /** \brief Updates the markers \e pose estimation
      */
-    void UpdatePose(std::vector<Point<CvPoint2D64f> > &_marker_corners_img, Camera *cam, int orientation, int frame_no = 0, bool update_pose = true);
+    void UpdatePose(std::vector<PointDouble> &_marker_corners_img, Camera *cam, int orientation, int frame_no = 0, bool update_pose = true);
     /** \brief Decodes the marker content. Please call \e UpdateContent before this. 
      *  This virtual method is meant to be implemented by heirs.
      */
@@ -92,10 +92,10 @@ namespace alvar {
     void SaveMarkerImage(const char *filename, int save_res = 0) const;
     /** \brief Draw the marker filling the ROI in the given image
      */
-    void ScaleMarkerToImage(IplImage *image) const;
+    void ScaleMarkerToImage(cv::Mat *image) const;
     /** \brief Visualize the marker
      */
-    void Visualize(IplImage *image, Camera *cam, CvScalar color=CV_RGB(255,0,0)) const;
+    void Visualize(cv::Mat *image, Camera *cam, cv::Scalar color=cv::Scalar(255,0,0)) const;
     /** \brief Method for resizing the marker dimensions  */
     void SetMarkerSize(double _edge_length = 0, int _res = 0, double _margin = 0);
     /** \brief Get edge length (to support different size markers */
@@ -221,13 +221,13 @@ namespace alvar {
   class ALVAR_EXPORT MarkerData : public Marker
   {
   protected:
-    virtual void VisualizeMarkerContent(IplImage *image, Camera *cam, double datatext_point[2], double content_point[2]) const;
+    virtual void VisualizeMarkerContent(cv::Mat *image, Camera *cam, double datatext_point[2], double content_point[2]) const;
     void DecodeOrientation(int *error, int *total, int *orientation);
     int DecodeCode(int orientation, BitsetExt *bs, int *erroneous, int *total, unsigned char* content_type);
     void Read6bitStr(BitsetExt *bs, char *s, size_t s_max_len);
     void Add6bitStr(BitsetExt *bs, char *s);
     int UsableDataBits(int marker_res, int hamming);
-    bool DetectResolution(std::vector<Point<CvPoint2D64f> > &_marker_corners_img, IplImage *gray, Camera *cam);
+    bool DetectResolution(std::vector<Point<cv::Point2f> > &_marker_corners_img, cv::Mat *gray, Camera *cam);
 
   public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW  
@@ -263,7 +263,7 @@ namespace alvar {
      * Compared to the basic implementation in \e Marker this will also detect the marker 
      * resolution automatically when the marker resolution is specified to be 0.
      */
-    virtual bool UpdateContent(std::vector<Point<CvPoint2D64f> > &_marker_corners_img, IplImage *gray, Camera *cam, int frame_no = 0);
+    virtual bool UpdateContent(std::vector<Point<cv::Point2f> > &_marker_corners_img, cv::Mat *gray, Camera *cam, int frame_no = 0);
     /** \brief \e DecodeContent should be called after \e UpdateContent to fill \e content_type, \e decode_error and \e data 
      */
     bool DecodeContent(int *orientation);
