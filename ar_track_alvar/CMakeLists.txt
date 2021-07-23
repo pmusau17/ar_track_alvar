@@ -33,6 +33,7 @@ find_package(pcl_conversions REQUIRED)
 find_package(ar_track_alvar_msgs)
 find_package(std_msgs)
 find_package(sensor_msgs)
+find_package(tf2_geometry_msgs REQUIRED)
 find_package(geometry_msgs)
 find_package(visualization_msgs)
 find_package(PCL REQUIRED QUIET COMPONENTS common io)
@@ -59,12 +60,14 @@ set(dependencies
   pcl_ros
   pcl_conversions 
   std_msgs 
+  TinyXML2
   image_transport
   perception_pcl 
   visualization_msgs 
   rclcpp 
   resource_retriever 
   geometry_msgs 
+  tf2_geometry_msgs
   cv_bridge 
   sensor_msgs
   ar_track_alvar_msgs
@@ -125,22 +128,22 @@ add_executable(individualMarkers nodes/IndividualMarkers.cpp)
 target_link_libraries(individualMarkers ar_track_alvar kinect_filtering)
 ament_target_dependencies(individualMarkers ${dependencies})
 
-add_executable(individualMarkersNoKinect nodes/IndividualMarkersNoKinect.cpp)
-target_link_libraries(individualMarkersNoKinect ar_track_alvar)
-ament_target_dependencies(individualMarkersNoKinect ${dependencies})
+# add_executable(individualMarkersNoKinect nodes/IndividualMarkersNoKinect.cpp)
+# target_link_libraries(individualMarkersNoKinect ar_track_alvar)
+# ament_target_dependencies(individualMarkersNoKinect ${dependencies})
 
-add_executable(trainMarkerBundle nodes/TrainMarkerBundle.cpp)
-target_link_libraries(trainMarkerBundle ar_track_alvar)
-ament_target_dependencies(trainMarkerBundle ${dependencies})
+# add_executable(trainMarkerBundle nodes/TrainMarkerBundle.cpp)
+# target_link_libraries(trainMarkerBundle ar_track_alvar)
+# ament_target_dependencies(trainMarkerBundle ${dependencies})
 
 
-add_executable(findMarkerBundles nodes/FindMarkerBundles.cpp)
-target_link_libraries(findMarkerBundles ar_track_alvar kinect_filtering medianFilter)
-ament_target_dependencies(findMarkerBundles ${dependencies})
+# add_executable(findMarkerBundles nodes/FindMarkerBundles.cpp)
+# target_link_libraries(findMarkerBundles ar_track_alvar kinect_filtering medianFilter)
+# ament_target_dependencies(findMarkerBundles ${dependencies})
 
-add_executable(findMarkerBundlesNoKinect nodes/FindMarkerBundlesNoKinect.cpp)
-target_link_libraries(findMarkerBundlesNoKinect ar_track_alvar)
-ament_target_dependencies(findMarkerBundlesNoKinect ${dependencies})
+# add_executable(findMarkerBundlesNoKinect nodes/FindMarkerBundlesNoKinect.cpp)
+# target_link_libraries(findMarkerBundlesNoKinect ar_track_alvar)
+# ament_target_dependencies(findMarkerBundlesNoKinect ${dependencies})
 
 # add_executable(createMarker src/SampleMarkerCreator.cpp)
 # target_link_libraries(createMarker ar_track_alvar)

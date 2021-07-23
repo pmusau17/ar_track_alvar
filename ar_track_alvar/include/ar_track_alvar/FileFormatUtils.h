@@ -35,7 +35,7 @@
 #include <opencv2/core/core.hpp>
 #include <opencv2/core/core_c.h>
 #include <opencv2/opencv.hpp>
-#include "tinyxml.h"
+#include <tinyxml2.h>
 
 namespace alvar {
 
@@ -47,7 +47,7 @@ namespace alvar {
 		 * \brief Reads matrix type, rows and cols from XML element.
 		 * \return true if XML element appears to be valid; otherwise false.
 		 */
-		static bool decodeXMLMatrix(const TiXmlElement *xml_matrix, int &type, int &rows, int &cols);
+		static bool decodeXMLMatrix(const tinyxml2::XMLElement  *xml_matrix, int &type, int &rows, int &cols);
 
 	public:
 
@@ -55,7 +55,7 @@ namespace alvar {
 		 * \param xml_matrix alvar:matrix element.
 		 * \return CvMat that has the correct size for \e parseXMLMatrix.
 		 */
-		static CvMat* allocateXMLMatrix(const TiXmlElement *xml_matrix);
+		static CvMat* allocateXMLMatrix(const tinyxml2::XMLElement  *xml_matrix);
 
 		/** \brief Reads contents of alvar:matrix into CvMat.
 		 *
@@ -68,7 +68,7 @@ namespace alvar {
 		 *               the xml_matrix.
 		 * \return true if matrix was successfully parsed; otherwise false.
 		 */
-		static bool parseXMLMatrix(const TiXmlElement *xml_matrix, CvMat *matrix);
+		static bool parseXMLMatrix(const tinyxml2::XMLElement  *xml_matrix, CvMat *matrix);
 
 		/** \brief Allocates new XML element and populates it with a CvMat data.
 		 *
@@ -78,7 +78,7 @@ namespace alvar {
 		 * \param matrix Data that is written into the returned XML element.
 		 * \return Newly allocated TiXmlElement.
 		 */
-		static TiXmlElement* createXMLMatrix(const char* element_name, const CvMat *matrix);
+		static tinyxml2::XMLElement* createXMLMatrix(const char* element_name, const CvMat *matrix);
 	};
 }
 

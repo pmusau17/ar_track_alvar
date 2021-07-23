@@ -355,21 +355,23 @@ int HistogramSubpixel::GetMax(double *dim0, double *dim1, double *dim2) {
 }
 
 struct SerializationFormatterXml {
-	TiXmlDocument document;
-	TiXmlElement *xml_current;
+	tinyxml2::XMLDocument document;
+	tinyxml2::XMLElement *xml_current;
 	SerializationFormatterXml() : xml_current(0) {}
 };
 
 bool Serialization::Output() {
 	SerializationFormatterXml *xml = (SerializationFormatterXml *)formatter_handle;
 	if (filename.size() > 0) {
-		//xml->document.LinkEndChild(new TiXmlDeclaration("1.0", "UTF-8", "no"));
-		xml->document.InsertBeforeChild	(xml->document.RootElement(), TiXmlDeclaration("1.0", "UTF-8", "no"));
+		tinyxml2::XMLDeclaration* declaration=xml->document.NewDeclaration();
+		xml->document.InsertFirstChild(declaration);
 		xml->document.SaveFile(filename.c_str());
 	} else {
-		const TiXmlNode *node = (xml->xml_current ? xml->xml_current : xml->document.RootElement());
-		std::basic_ostream<char> *os = dynamic_cast<std::basic_ostream<char> *>(stream);
-		(*os)<<(*node);
+		std::cout << "Invalid Filename" << std::endl;
+		exit(0);
+		// const tinyxml2::XMLNode *node = (xml->xml_current ? xml->xml_current : xml->document.RootElement());
+		// std::basic_ostream<char> *os = dynamic_cast<std::basic_ostream<char> *>(stream);
+		// (*os)<<(*node);
 		//(*stream)<<(*node);
 	}
 	return true;
@@ -380,13 +382,15 @@ bool Serialization::Input() {
 	if (filename.size() > 0) {
 		xml->document.LoadFile(filename.c_str());
 	} else {
-		// TODO: How this should be handled with nested classes?
-		TiXmlNode *node = (xml->xml_current ? xml->xml_current : xml->document.RootElement());
-		if (node == 0) {
-			node = (TiXmlElement*)xml->document.LinkEndChild(new TiXmlElement("root"));
-		}
-		std::basic_istream<char> *is = dynamic_cast<std::basic_istream<char> *>(stream);
-		(*is)>>(*node);
+		std::cout << "Invalid Filename" << std::endl;
+		exit(0);
+		// // TODO: How this should be handled with nested classes?
+		// tinyxml2::XMLNode *node = (xml->xml_current ? xml->xml_current : xml->document.RootElement());
+		// if (node == 0) {
+		// 	node = (tinyxml2::XMLElement*)xml->document.LinkEndChild(new tinyxml2::XMLElement("root"));
+		// }
+		// std::basic_istream<char> *is = dynamic_cast<std::basic_istream<char> *>(stream);
+		// (*is)>>(*node);
 		//(*stream)>>(*node);
 	}
 	return true;
@@ -401,21 +405,23 @@ bool Serialization::Descend(const char *id) {
 				return false;
 			}
 		} else {
-			xml->xml_current = (TiXmlElement*)xml->xml_current->FirstChild (id);
+			xml->xml_current = (tinyxml2::XMLElement*)xml->xml_current->FirstChildElement(id);
 			if (xml->xml_current == NULL) return false;
 		}
 	} else {
+		tinyxml2::XMLElement* temp;
+		temp->SetName(id);
 		if (xml->xml_current == 0) {
-			xml->xml_current = (TiXmlElement*)xml->document.LinkEndChild(new TiXmlElement(id));
+			xml->xml_current = (tinyxml2::XMLElement*)xml->document.LinkEndChild(temp);
 		} else {
-			xml->xml_current = (TiXmlElement*)xml->xml_current->LinkEndChild(new TiXmlElement(id));
+			xml->xml_current = (tinyxml2::XMLElement*)xml->xml_current->LinkEndChild(temp);
 		}
 	}
 	return true;
 }
 bool Serialization::Ascend() {
 	SerializationFormatterXml *xml = (SerializationFormatterXml *)formatter_handle;
-	xml->xml_current = (TiXmlElement*)xml->xml_current->Parent();
+	xml->xml_current = (tinyxml2::XMLElement*)xml->xml_current->Parent();
 	return true;
 }
 
@@ -454,8 +460,8 @@ bool Serialization::Serialize(int &data, const std::string &name) {
 	SerializationFormatterXml *xml = (SerializationFormatterXml *)formatter_handle;
 	if (!xml || !xml->xml_current) return false;
 	bool ret = true;
-	if (input) ret = (xml->xml_current->QueryIntAttribute(name, &data) == TIXML_SUCCESS);
-	else xml->xml_current->SetAttribute(name, data);
+	if (input) ret = (xml->xml_current->QueryIntAttribute(name.c_str(), &data) == EXIT_SUCCESS);
+	else xml->xml_current->SetAttribute(name.c_str(), data);
 	return ret;
 }
 
@@ -477,8 +483,8 @@ bool Serialization::Serialize(unsigned long &data, const std::string &name) {
 bool Serialization::Serialize(double &data, const std::string &name) {
 	SerializationFormatterXml *xml = (SerializationFormatterXml *)formatter_handle;
 	bool ret = true;
-	if (input) ret = (xml->xml_current->QueryDoubleAttribute(name, &data) == TIXML_SUCCESS);
-	else xml->xml_current->SetDoubleAttribute(name.c_str(), data);
+	if (input) ret = (xml->xml_current->QueryDoubleAttribute(name.c_str(), &data) == EXIT_SUCCESS);
+	else xml->xml_current->DoubleAttribute(name.c_str(), data);
 	return ret;
 }
 
@@ -498,7 +504,7 @@ bool Serialization::Serialize(CvMat &data, const std::string &name) {
 	SerializationFormatterXml *xml = (SerializationFormatterXml *)formatter_handle;
 	bool ret = true;
 	if (input) {
-		TiXmlElement *xml_matrix = (TiXmlElement*)xml->xml_current->FirstChild(name);
+		tinyxml2::XMLElement *xml_matrix = (tinyxml2::XMLElement*)xml->xml_current->FirstChildElement(name.c_str());
 		if (xml_matrix == NULL) return false;
 		if (!FileFormatUtils::parseXMLMatrix(xml_matrix, &data)) return false;
 	}

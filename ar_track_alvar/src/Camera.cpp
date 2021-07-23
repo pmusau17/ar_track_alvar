@@ -180,13 +180,13 @@ void Camera::SetSimpleCalib(int _x_res, int _y_res, double f_fac)
 }
 
 bool Camera::LoadCalibXML(const char *calibfile) {
-	TiXmlDocument document;
+	tinyxml2::XMLDocument document;
 	if (!document.LoadFile(calibfile)) return false;
-	TiXmlElement *xml_root = document.RootElement();
+	tinyxml2::XMLElement *xml_root = document.RootElement();
 
 	return 
-		xml_root->QueryIntAttribute("width", &calib_x_res) == TIXML_SUCCESS &&
-		xml_root->QueryIntAttribute("height", &calib_y_res) == TIXML_SUCCESS &&
+		xml_root->QueryIntAttribute("width", &calib_x_res) == EXIT_SUCCESS &&
+		xml_root->QueryIntAttribute("height", &calib_y_res) == EXIT_SUCCESS &&
 		FileFormatUtils::parseXMLMatrix(xml_root->FirstChildElement("intrinsic_matrix"), &calib_K) && 
 		FileFormatUtils::parseXMLMatrix(xml_root->FirstChildElement("distortion"), &calib_D);
 }
@@ -336,10 +336,13 @@ bool Camera::SetCalib(const char *calibfile, int _x_res, int _y_res, FILE_FORMAT
 }
 
 bool Camera::SaveCalibXML(const char *calibfile) {
-	TiXmlDocument document;
-	document.LinkEndChild(new TiXmlDeclaration("1.0", "UTF-8", "no"));
-	document.LinkEndChild(new TiXmlElement("camera"));
-	TiXmlElement *xml_root = document.RootElement();
+	tinyxml2::XMLDocument document;
+	tinyxml2::XMLDeclaration* declaration=document.NewDeclaration();
+	document.InsertFirstChild(declaration);
+	tinyxml2::XMLElement * temp;
+	temp->SetName("Camera");
+	document.LinkEndChild(temp);
+	tinyxml2::XMLElement *xml_root = document.RootElement();
 	xml_root->SetAttribute("width", calib_x_res);
 	xml_root->SetAttribute("height", calib_y_res);
 	xml_root->LinkEndChild(FileFormatUtils::createXMLMatrix("intrinsic_matrix", &calib_K));

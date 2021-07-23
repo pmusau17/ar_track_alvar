@@ -54,28 +54,36 @@ void MultiMarker::Reset()
 }
 
 bool MultiMarker::SaveXML(const char* fname) {
-	TiXmlDocument document;
-	document.LinkEndChild(new TiXmlDeclaration("1.0", "UTF-8", "no"));
-	document.LinkEndChild(new TiXmlElement("multimarker"));
-	TiXmlElement *xml_root = document.RootElement();
+	tinyxml2::XMLDocument document;
+	tinyxml2::XMLDeclaration* declaration=document.NewDeclaration();
+	document.InsertFirstChild(declaration);
+	tinyxml2::XMLElement * temp;
+	temp->SetName("multimarker");
+	document.LinkEndChild(temp);
+	tinyxml2::XMLElement *xml_root = document.RootElement();
 
 	int n_markers = marker_indices.size();
 	xml_root->SetAttribute("markers", n_markers);
 
 	for(int i = 0; i < n_markers; ++i) {
-		TiXmlElement *xml_marker = new TiXmlElement("marker");
+		tinyxml2::XMLElement *xml_marker;
+		xml_marker->SetName("marker");
+
+
+
 		xml_root->LinkEndChild(xml_marker);
 
 		xml_marker->SetAttribute("index", marker_indices[i]);
 		xml_marker->SetAttribute("status", marker_status[i]);
 
 		for(int j = 0; j < 4; ++j) {
-			TiXmlElement *xml_corner = new TiXmlElement("corner");
+			tinyxml2::XMLElement *xml_corner;
+			xml_corner->SetName("corner");
 			xml_marker->LinkEndChild(xml_corner);
 			cv::Point3f X = pointcloud[pointcloud_index(marker_indices[i], j)];
-			xml_corner->SetDoubleAttribute("x", X.x);
-			xml_corner->SetDoubleAttribute("y", X.y);
-			xml_corner->SetDoubleAttribute("z", X.z);
+			xml_corner->DoubleAttribute("x", X.x);
+			xml_corner->DoubleAttribute("y", X.y);
+			xml_corner->DoubleAttribute("z", X.z);
 		}
 	}
 	return document.SaveFile(fname);
@@ -125,42 +133,42 @@ bool MultiMarker::Save(const char* fname, FILE_FORMAT format) {
 }
 
 bool MultiMarker::LoadXML(const char* fname) {
-	TiXmlDocument document;
+	tinyxml2::XMLDocument document;
 	if (!document.LoadFile(fname)) return false;
-	TiXmlElement *xml_root = document.RootElement();
+	tinyxml2::XMLElement *xml_root = document.RootElement();
 
 	int n_markers;
-	if (xml_root->QueryIntAttribute("markers", &n_markers) != TIXML_SUCCESS) return false;
+	if (xml_root->QueryIntAttribute("markers", &n_markers) != EXIT_SUCCESS) return false;
 
 	pointcloud.clear();
 	marker_indices.resize(n_markers);
 	marker_status.resize(n_markers);
 
-	TiXmlElement *xml_marker = xml_root->FirstChildElement("marker");
+	tinyxml2::XMLElement *xml_marker = xml_root->FirstChildElement("marker");
 	for(int i = 0; i < n_markers; ++i) {
 		if (!xml_marker) return false;
 
 		int index, status;
-		if (xml_marker->QueryIntAttribute("index", &index) != TIXML_SUCCESS) return false;
-		if (xml_marker->QueryIntAttribute("status", &status) != TIXML_SUCCESS) return false;
+		if (xml_marker->QueryIntAttribute("index", &index) != EXIT_SUCCESS) return false;
+		if (xml_marker->QueryIntAttribute("status", &status) != EXIT_SUCCESS) return false;
 		marker_indices[i] = index;
 		marker_status[i] = status;
 		if(i==0) master_id = index;
 
-		TiXmlElement *xml_corner = xml_marker->FirstChildElement("corner");
+		tinyxml2::XMLElement *xml_corner = xml_marker->FirstChildElement("corner");
 		for(int j = 0; j < 4; ++j) {
 			if (!xml_corner) return false;
 
 			cv::Point3f X;
-			if (xml_corner->QueryDoubleAttribute("x", (double *)&X.x) != TIXML_SUCCESS) return false;
-			if (xml_corner->QueryDoubleAttribute("y", (double *)&X.y) != TIXML_SUCCESS) return false;
-			if (xml_corner->QueryDoubleAttribute("z", (double *)&X.z) != TIXML_SUCCESS) return false;
+			if (xml_corner->QueryDoubleAttribute("x", (double *)&X.x) != EXIT_SUCCESS) return false;
+			if (xml_corner->QueryDoubleAttribute("y", (double *)&X.y) != EXIT_SUCCESS) return false;
+			if (xml_corner->QueryDoubleAttribute("z", (double *)&X.z) != EXIT_SUCCESS) return false;
 			pointcloud[pointcloud_index(marker_indices[i], j)] = X;
 
-			xml_corner = (TiXmlElement*)xml_corner->NextSibling("corner");
+			xml_corner = (tinyxml2::XMLElement*)xml_corner->NextSiblingElement("corner");
 		}
 
-		xml_marker = (TiXmlElement*)xml_marker->NextSibling("marker");
+		xml_marker = (tinyxml2::XMLElement*)xml_marker->NextSiblingElement("marker");
 	}
 	return true;
 }

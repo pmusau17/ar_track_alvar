@@ -47,7 +47,7 @@
 #include <tf2_ros/transform_broadcaster.h>
 #include <sensor_msgs/image_encodings.hpp>
 // #include <dynamic_reconfigure/server.h>
-#include <ar_track_alvar/ParamsConfig.h>
+// #include <ar_track_alvar/ParamsConfig.h>
 
 using namespace alvar;
 using namespace std;
