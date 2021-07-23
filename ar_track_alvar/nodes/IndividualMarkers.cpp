@@ -610,58 +610,11 @@ void draw3dPoints(ARCloud::Ptr cloud, string frame, int color, int id, double ra
   }
 };
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 int main(int argc, char *argv[])
 {
   rclcpp::init(argc, argv);
   rclcpp::spin(std::make_shared<IndividualMarkers>(argc,argv));
   rclcpp::shutdown();
   return 0;
-  // rclcpp::Node n, pn("~");
 
-  
-  // // Run at the configured rate, discarding pointcloud msgs if necessary
-  // rclcpp::Rate rate(max_frequency);
-
-  // while (rclcpp::ok())
-  // {
-  //   rclcpp::spin_some(node);
-  //   rate.sleep();
-
-  //   if (std::abs((rate.expectedCycleTime() - rclcpp::Duration(1.0 / max_frequency)).toSec()) > 0.001)
-  //   {
-  //     // Change rate dynamically; if must be above 0, as 0 will provoke a segfault on next spinOnce
-  //     RCLCPP_DEBUG(rclcpp::get_logger("ArTrackAlvar"), "Changing frequency from %.2f to %.2f", 1.0 / rate.expectedCycleTime().toSec(), max_frequency);
-  //     rate = rclcpp::Rate(max_frequency);
-  //   }
-
-  //   if (enableSwitched == true)
-  //   {
-  //     // Enable/disable switch: subscribe/unsubscribe to make use of pointcloud processing nodelet
-  //     // lazy publishing policy; in CPU-scarce computer as TurtleBot's laptop this is a huge saving
-  //     if (enabled == false)
-  //       cloud_sub_.shutdown();
-  //     else
-  //       cloud_sub_ = n.subscribe(cam_image_topic, 1, &getPointCloudCallback);
-
-  //     enableSwitched = false;
-  //   }
-  // }
-
-  // return 0;
 }
