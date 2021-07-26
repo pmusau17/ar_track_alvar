@@ -172,6 +172,8 @@ class IndividualMarkersNoKinect : public rclcpp::Node
       rclcpp::Rate loop_rate(100);
       loop_rate.sleep();
 
+      arMarkerPub_ = this->create_publisher<ar_track_alvar_msgs::msg::AlvarMarkers> ("ar_pose_marker", 0);
+      rvizMarkerPub_ = this->create_publisher<visualization_msgs::msg::Marker> ("visualization_marker", 0);
 
       cam_sub_ = this->create_subscription<sensor_msgs::msg::Image>(cam_image_topic, 1, 
             std::bind(&IndividualMarkersNoKinect::getCapCallback, this, std::placeholders::_1));

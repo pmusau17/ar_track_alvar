@@ -132,14 +132,14 @@ add_executable(individualMarkersNoKinect nodes/IndividualMarkersNoKinect.cpp)
 target_link_libraries(individualMarkersNoKinect ar_track_alvar)
 ament_target_dependencies(individualMarkersNoKinect ${dependencies})
 
-# add_executable(trainMarkerBundle nodes/TrainMarkerBundle.cpp)
-# target_link_libraries(trainMarkerBundle ar_track_alvar)
-# ament_target_dependencies(trainMarkerBundle ${dependencies})
+add_executable(trainMarkerBundle nodes/TrainMarkerBundle.cpp)
+target_link_libraries(trainMarkerBundle ar_track_alvar)
+ament_target_dependencies(trainMarkerBundle ${dependencies})
 
 
-# add_executable(findMarkerBundles nodes/FindMarkerBundles.cpp)
-# target_link_libraries(findMarkerBundles ar_track_alvar kinect_filtering medianFilter)
-# ament_target_dependencies(findMarkerBundles ${dependencies})
+add_executable(findMarkerBundles nodes/FindMarkerBundles.cpp)
+target_link_libraries(findMarkerBundles ar_track_alvar kinect_filtering medianFilter)
+ament_target_dependencies(findMarkerBundles ${dependencies})
 
 # add_executable(findMarkerBundlesNoKinect nodes/FindMarkerBundlesNoKinect.cpp)
 # target_link_libraries(findMarkerBundlesNoKinect ar_track_alvar)
