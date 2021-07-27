@@ -32,11 +32,20 @@ This package is a ROS wrapper for Alvar, an open source AR tag tracking library.
 <depend>libopencv-dev</depend>
 <depend>eigen</depend>
 <depend>libpcl-all-dev</depend>
-<!-- <build_depend>cmake_modules</build_depend> -->
 
 
-<test_depend>ament_cmake_gtest</test_depend>
-<test_depend>rosbag2</test_depend>
+ <test_depend>ament_cmake_pytest</test_depend>
+  <test_depend>ament_lint_auto</test_depend>
+  <test_depend>ament_lint_common</test_depend>
+  <test_depend>launch</test_depend>
+  <test_depend>launch_ros</test_depend>
+  <test_depend>launch_testing</test_depend>
+  <test_depend>launch_testing_ament_cmake</test_depend>
+  <test_depend>python3-opencv</test_depend>
+  <test_depend>python_cmake_module</test_depend>
+  <test_depend>rclpy</test_depend>
+  <test_depend>ros_testing</test_depend>
+  <test_depend>rosbag2</test_depend>
 <export>
 <build_type>ament_cmake</build_type>
 </export>

@@ -14,7 +14,8 @@ if(NOT DEFINED CMAKE_SUPPRESS_DEVELOPER_WARNINGS)
      set(CMAKE_SUPPRESS_DEVELOPER_WARNINGS 1 CACHE INTERNAL "No dev warnings")
 endif()
 
-
+find_package(ament_cmake_auto REQUIRED)
+ament_auto_find_build_dependencies()
 
 find_package(rclcpp REQUIRED)
 find_package(tf2_ros REQUIRED)
@@ -144,7 +145,7 @@ ament_target_dependencies(createMarker ${dependencies})
 ament_export_include_directories(include)
 ament_export_libraries(ar_track_alvar)
 ament_export_dependencies(OpenCV ar_track_alvar_msgs std_msgs rclcpp tf2_ros tf2 message_runtime image_transport sensor_msgs geometry_msgs visualization_msgs resource_retriever cv_bridge perception_pcl pcl_conversions)
-ament_package()
+
 
 install(TARGETS ${ALVAR_TARGETS} ${KINECT_FILTERING_TARGETS}
   ARCHIVE DESTINATION lib
@@ -163,13 +164,30 @@ install(DIRECTORY launch bundles
 
 
 if(BUILD_TESTING)
-  find_package(ament_cmake_gtest REQUIRED)
-  find_package(ament_download)
+  
+  find_package(ament_lint_auto REQUIRED)
+  ament_lint_auto_find_test_dependencies()
+  # find_package(ament_cmake_gtest REQUIRED)
+  # find_package(ament_download)
+
+
+
   ament_download(http://download.ros.org/data/ar_track_alvar/ar_track_alvar_4markers_tork_2017-02-08-11-21-14.bag
     FILENAME ar_track_alvar_4markers_tork_2017-02-08-11-21-14.bag
     DESTINATION ${CMAKE_INSTALL_PREFIX}
     MD5 627aa0316bbfe4334e06023d7c2b4087
    )
+
+  set(_PYTHON_EXECUTABLE "${PYTHON_EXECUTABLE}")
+  if(WIN32 AND CMAKE_BUILD_TYPE STREQUAL "Debug")
+    set(PYTHON_EXECUTABLE "${PYTHON_EXECUTABLE_DEBUG}")
+  endif()
+
+
+  # Test DisparityNode in launch test
+  add_launch_test("test/test_ar_track_alvar.py"
+    PYTHON_EXECUTABLE "${PYTHON_EXECUTABLE}"
+  )
   #ament_add_gtest(test)
 endif()
 #TODO fix these tests
@@ -204,3 +222,5 @@ endif()
 include(CheckCXXCompilerFlag)
 CHECK_CXX_COMPILER_FLAG("-std=c++11" COMPILER_SUPPORTS_CXX11)
 CHECK_CXX_COMPILER_FLAG("-std=c++0x" COMPILER_SUPPORTS_CXX0X)
+
+ament_package()
