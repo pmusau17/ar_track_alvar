@@ -1,15 +1,6 @@
 cmake_minimum_required(VERSION 3.5)
 project(ar_track_alvar)
 
-# if(NOT WIN32)
-#   if(NOT CMAKE_CXX_STANDARD)
-#     set(CMAKE_CXX_STANDARD 14)
-#   endif()
-#   if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-#     add_compile_options(-Wall -Wextra -Wpedantic)
-#   endif()
-# endif()
-
 find_package(ament_cmake REQUIRED)
 find_package(ament_cmake_auto REQUIRED)
 ament_auto_find_build_dependencies()
@@ -34,12 +25,13 @@ find_package(cv_bridge REQUIRED)
 find_package(perception_pcl  REQUIRED)
 find_package(pcl_ros)
 find_package(pcl_conversions REQUIRED)
-find_package(ar_track_alvar_msgs)
-find_package(std_msgs)
-find_package(sensor_msgs)
+find_package(ar_track_alvar_msgs REQUIRED)
+find_package(std_msgs REQUIRED)
+find_package(sensor_msgs REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
-find_package(geometry_msgs)
-find_package(visualization_msgs)
+find_package(geometry_msgs REQUIRED)
+find_package(rosbag2_bag_v2_plugins REQUIRED)
+find_package(visualization_msgs REQUIRED)
 find_package(PCL REQUIRED QUIET COMPONENTS common io)
 
 find_package(Eigen3 REQUIRED)
@@ -48,14 +40,9 @@ find_package(TinyXML2 REQUIRED)
 include_directories(include)
 
 
-#set(GENCPP_DEPS ar_track_alvar_msgs_gencpp std_msgs_gencpp sensor_msgs_gencpp geometry_msgs_gencpp visualization_msgs_gencpp)
-
 # Kinect filtering code
 set(KINECT_FILTERING_TARGETS kinect_filtering medianFilter)
 set(ALVAR_TARGETS ar_track_alvar individualMarkers individualMarkersNoKinect trainMarkerBundle findMarkerBundles findMarkerBundlesNoKinect createMarker ar_track_alvar)
-
-# dynamic reconfigure support
-#generate_dynamic_reconfigure_options(cfg/Params.cfg)
 
 set(dependencies
   OpenCV
@@ -159,29 +146,32 @@ ament_export_libraries(ar_track_alvar)
 ament_export_dependencies(OpenCV ar_track_alvar_msgs std_msgs rclcpp tf2_ros tf2 message_runtime image_transport sensor_msgs geometry_msgs visualization_msgs resource_retriever cv_bridge perception_pcl pcl_conversions)
 ament_package()
 
-# install(TARGETS ${ALVAR_TARGETS} ${KINECT_FILTERING_TARGETS}
-#   ARCHIVE DESTINATION lib
-#   LIBRARY DESTINATION lib
-#   RUNTIME DESTINATION lib/${PROJECT_NAME}
-# )
+install(TARGETS ${ALVAR_TARGETS} ${KINECT_FILTERING_TARGETS}
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION lib/${PROJECT_NAME}
+)
 
-# install(DIRECTORY include/${PROJECT_NAME}/
-#   DESTINATION include/${PROJECT_NAME}
-# )
+install(DIRECTORY include/${PROJECT_NAME}/
+  DESTINATION include/${PROJECT_NAME}
+)
 
-# install(DIRECTORY launch bundles
-#   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/
-# )
-# if(COMPILER_SUPPORTS_CXX11)
-#     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
-#     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
-# elseif(COMPILER_SUPPORTS_CXX0X)
-# else()
-#         message(STATUS "The compiler ${CMAKE_CXX_COMPILER} has no C++11 support. Please use a different C++ compiler.")
-# endif()
+install(DIRECTORY launch bundles
+  DESTINATION share/${PROJECT_NAME}
+)
 
 
 
+if(BUILD_TESTING)
+  find_package(ament_cmake_gtest REQUIRED)
+  find_package(ament_download)
+  ament_download(http://download.ros.org/data/ar_track_alvar/ar_track_alvar_4markers_tork_2017-02-08-11-21-14.bag
+    FILENAME ar_track_alvar_4markers_tork_2017-02-08-11-21-14.bag
+    DESTINATION ${CMAKE_INSTALL_PREFIX}
+    MD5 627aa0316bbfe4334e06023d7c2b4087
+   )
+  #ament_add_gtest(test)
+endif()
 #TODO fix these tests
 # if(BUILD_TESTING)
 #   add_subdirectory(test)

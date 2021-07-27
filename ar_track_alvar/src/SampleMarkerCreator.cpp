@@ -1,5 +1,6 @@
 #include "ar_track_alvar/MultiMarker.h"
 #include <opencv2/highgui/highgui_c.h>
+#include "opencv2/opencv.hpp" 
 using namespace std;
 using namespace alvar;
 
@@ -51,7 +52,10 @@ struct State {
                 miny = (posy*units) - (marker_side_len*units/2.0);
                 maxx = (posx*units) + (marker_side_len*units/2.0);
                 maxy = (posy*units) + (marker_side_len*units/2.0);
-            } else {
+            } 
+            
+            else 
+            {
                 double new_minx = (posx*units) - (marker_side_len*units/2.0);
                 double new_miny = (posy*units) - (marker_side_len*units/2.0);
                 double new_maxx = (posx*units) + (marker_side_len*units/2.0);
@@ -83,16 +87,18 @@ struct State {
                 roi.x = int((posx*units) - (marker_side_len*units/2.0) - new_minx + 0.5); 
                 roi.y = int((posy*units) - (marker_side_len*units/2.0) - new_miny + 0.5); 
                 roi.width = int(marker_side_len*units+0.5); roi.height = int(marker_side_len*units+0.5);
-
+            
                 cv::Mat im2 = img->clone();
 		        cv::Mat image_roi2 = im2(roi);
 		        CvMat img3 = cvMat(image_roi2);
+
                 cv::Mat temp_img = cv::cvarrToMat(&img3);
                 img = &temp_img;
         
                 minx = new_minx; miny = new_miny;
                 maxx = new_maxx; maxy = new_maxy;
             }
+            
             if (marker_data_content_type == MarkerData::MARKER_CONTENT_TYPE_NUMBER) {
                 int idi = atoi(id);
                 md.SetContent(marker_data_content_type, idi, 0);
@@ -102,7 +108,9 @@ struct State {
                 pose.Reset();
                 pose.SetTranslation(posx, -posy, 0);
                 multi_marker.PointCloudAdd(idi, marker_side_len, pose);
-            } else {
+            } 
+            else 
+            {
                 md.SetContent(marker_data_content_type, 0, id);
                 const char *p = id;
                 int counter=0;
@@ -112,10 +120,9 @@ struct State {
                     else filename<<(char)tolower(*p);
                     p++; counter++;
                     if (counter > 8) break;
-                }
             }
+        }
             md.ScaleMarkerToImage(img);
-            // cvResetImageROI(img);
         }
         else if (marker_type == 1) {
             // Create and save MarkerArtoolkit marker (Note, that this doesn't support multi markers)

@@ -189,7 +189,7 @@ bool Marker::UpdateContent(std::vector<PointDouble> &_marker_corners_img, cv::Ma
 }
 
 bool Marker::UpdateContentBasic(std::vector<PointDouble> &_marker_corners_img, cv::Mat *gray, Camera *cam, int frame_no /*= 0*/) {
-	vector<PointDouble > marker_corners_img_undist;
+	vector<PointDouble> marker_corners_img_undist;
 	marker_corners_img_undist.resize(_marker_corners_img.size());
 	copy(_marker_corners_img.begin(), _marker_corners_img.end(), marker_corners_img_undist.begin());
 
@@ -267,6 +267,7 @@ bool Marker::UpdateContentBasic(std::vector<PointDouble> &_marker_corners_img, c
 
 	// Threshold the marker content
 
+	std::cout << "potential problem 1" << std::endl;
 	cv::Mat temp = cv::cvarrToMat(marker_content);
 
 	cv::threshold(temp, temp, (max+min)/2.0, 255, cv::THRESH_BINARY);
@@ -349,6 +350,7 @@ void Marker::SaveMarkerImage(const char *filename, int save_res) const {
 	cvZero(img);
 	CvMat submat;
 	cvGetSubRect(img, &submat, cvRect(int(margin*scale), int(margin*scale), int(res*scale), int(res*scale)));
+	std::cout << "potential problem 2" << std::endl;
 	cv::resize(cv::cvarrToMat(marker_content), *img_content,img_content->size(), cv::INTER_NEAREST);
 	cvCopy(img_content, &submat);
 	cv::imwrite(filename, *img);
@@ -366,12 +368,15 @@ void Marker::ScaleMarkerToImage(cv::Mat *image) const {
 	
 
 
-
-	cvZero(img);
+	img->setTo(cv::Scalar::all(0));
 	CvMat submat;
-	cvGetSubRect(img, &submat, cvRect(int(multiplier*margin+0.5), int(multiplier*margin+0.5), int(multiplier*res+0.5), int(multiplier*res+0.5)));
+	CvMat temp3 = cvMat(*img);
+	cvGetSubRect(&temp3, &submat, cvRect(int(multiplier*margin+0.5), int(multiplier*margin+0.5), int(multiplier*res+0.5), int(multiplier*res+0.5)));
 	cv::resize(cv::cvarrToMat(marker_content), *img_content, img_content->size(), cv::INTER_NEAREST);
-	cvCopy(img_content, &submat);
+
+	CvMat temp4 = cvMat(*img_content);
+	cvCopy(&temp4, &submat);
+	
 	cv::resize(*img, *image,image->size(), cv::INTER_NEAREST);
 	// cvReleaseImage(&img_content);
 	// cvReleaseImage(&img);
