@@ -19,6 +19,10 @@ if(OpenCV_VERSION VERSION_GREATER 4.5.0)
   target_compile_definitions(library PUBLIC USE_LEGACY_TRACKING=1)
 endif()
 
+if(NOT DEFINED CMAKE_SUPPRESS_DEVELOPER_WARNINGS)
+     set(CMAKE_SUPPRESS_DEVELOPER_WARNINGS 1 CACHE INTERNAL "No dev warnings")
+endif()
+
 
 
 find_package(rclcpp REQUIRED)
@@ -210,5 +214,3 @@ ament_package()
 include(CheckCXXCompilerFlag)
 CHECK_CXX_COMPILER_FLAG("-std=c++11" COMPILER_SUPPORTS_CXX11)
 CHECK_CXX_COMPILER_FLAG("-std=c++0x" COMPILER_SUPPORTS_CXX0X)
-
-cmake_policy(SET CMP0046 OLD)
