@@ -126,24 +126,7 @@ bool ProjPoints::AddPointsUsingMarkers(vector<PointDouble> &marker_corners, vect
 	return true;
 }
 
-Camera::Camera(): Node("camera_node") {
-	calib_K = cvMat(3, 3, CV_64F, calib_K_data);
-	calib_D = cvMat(4, 1, CV_64F, calib_D_data);
-	memset(calib_K_data,0,sizeof(double)*3*3);
-	memset(calib_D_data,0,sizeof(double)*4);
-	calib_K_data[0][0] = 550; // Just some focal length by default
-	calib_K_data[1][1] = 550; // Just some focal length by default
-	calib_K_data[0][2] = 320;
-	calib_K_data[1][2] = 240;
-	calib_K_data[2][2] = 1;
-	calib_x_res = 640;
-	calib_y_res = 480;
-	x_res = 640;
-	y_res = 480;
-}
-
-
-Camera::Camera(std::string cam_info_topic):Node("camera_node")
+Camera::Camera()//:Node("camera_node") 
 {
 	calib_K = cvMat(3, 3, CV_64F, calib_K_data);
 	calib_D = cvMat(4, 1, CV_64F, calib_D_data);
@@ -158,12 +141,32 @@ Camera::Camera(std::string cam_info_topic):Node("camera_node")
 	calib_y_res = 480;
 	x_res = 640;
 	y_res = 480;
-	cameraInfoTopic_ = cam_info_topic;
-
-	RCLCPP_INFO(this->get_logger(),"Subscribing to info topic");
-	sub_ = this->create_subscription<sensor_msgs::msg::CameraInfo>(cameraInfoTopic_, 1,std::bind(&Camera::camInfoCallback, this, _1));
     getCamInfo_ = false;
 }
+
+
+// Camera::Camera(std::string cam_info_topic)//:Node("camera_node")
+// {
+// 	RCLCPP_INFO(this->get_logger(),"Subscribing to info topic");
+// 	calib_K = cvMat(3, 3, CV_64F, calib_K_data);
+// 	calib_D = cvMat(4, 1, CV_64F, calib_D_data);
+// 	memset(calib_K_data,0,sizeof(double)*3*3);
+// 	memset(calib_D_data,0,sizeof(double)*4);
+// 	calib_K_data[0][0] = 550; // Just some focal length by default
+// 	calib_K_data[1][1] = 550; // Just some focal length by default
+// 	calib_K_data[0][2] = 320;
+// 	calib_K_data[1][2] = 240;
+// 	calib_K_data[2][2] = 1;
+// 	calib_x_res = 640;
+// 	calib_y_res = 480;
+// 	x_res = 640;
+// 	y_res = 480;
+// 	cameraInfoTopic_ = cam_info_topic;
+
+// 	RCLCPP_INFO(this->get_logger(),"Subscribing to info topic");
+// 	sub_ = this->create_subscription<sensor_msgs::msg::CameraInfo>(cameraInfoTopic_, 1,std::bind(&Camera::camInfoCallback, this, _1));
+//     getCamInfo_ = false;
+// }
 
 
 void Camera::SetSimpleCalib(int _x_res, int _y_res, double f_fac)
@@ -289,16 +292,6 @@ void Camera::SetCameraInfo(const sensor_msgs::msg::CameraInfo::SharedPtr cam_inf
         cvmSet(&calib_D, 3, 0, 0);
     }
 }
-
-void Camera::camInfoCallback (const sensor_msgs::msg::CameraInfo::SharedPtr cam_info) 
-  {
-    if (!getCamInfo_)
-    {
-        SetCameraInfo(cam_info);
-        getCamInfo_ = true;
-        sub_.reset();
-    }
-  }
 
 bool Camera::SetCalib(const char *calibfile, int _x_res, int _y_res, FILE_FORMAT format) {
 	x_res = _x_res;

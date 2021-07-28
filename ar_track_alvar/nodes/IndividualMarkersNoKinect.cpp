@@ -69,6 +69,7 @@ class IndividualMarkersNoKinect : public rclcpp::Node
     rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr  cam_sub_;
     rclcpp::Publisher<ar_track_alvar_msgs::msg::AlvarMarkers>::SharedPtr arMarkerPub_;
     rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr rvizMarkerPub_;
+    rclcpp::Subscription<sensor_msgs::msg::CameraInfo>::SharedPtr info_sub_;
 
     tf2_ros::TransformBroadcaster tf_broadcaster_;
     tf2_ros::TransformListener tf_listener_;
@@ -164,7 +165,7 @@ class IndividualMarkersNoKinect : public rclcpp::Node
       }
 
       marker_detector.SetMarkerSize(marker_size, marker_resolution, marker_margin);
-	    cam = new Camera(cam_info_topic);
+	    cam = new Camera();
 
       //Give tf a chance to catch up before the camera callback starts asking for transforms
       // It will also reconfigure parameters for the first time, setting the default values
@@ -182,12 +183,26 @@ class IndividualMarkersNoKinect : public rclcpp::Node
       enable_sub_ = this->create_subscription<std_msgs::msg::Bool>("enable_detection", 1, std::bind(&IndividualMarkersNoKinect::enableCallback, this, std::placeholders::_1));
 
 
+      RCLCPP_INFO(this->get_logger(),"Subscribing to info topic");
+	    info_sub_ = this->create_subscription<sensor_msgs::msg::CameraInfo>(cam_info_topic, 1, std::bind(&IndividualMarkersNoKinect::InfoCallback, this, std::placeholders::_1));
+
     }
 
     void enableCallback(const std_msgs::msg::Bool::SharedPtr msg)
     {
       enableSwitched = enabled != msg->data;
       enabled = msg->data;
+    }
+
+    void InfoCallback (const sensor_msgs::msg::CameraInfo::SharedPtr cam_info) 
+    {
+      RCLCPP_INFO(this->get_logger(),"this executed");
+      if (!cam->getCamInfo_)
+      {
+          cam->SetCameraInfo(cam_info);
+          cam->getCamInfo_ = true;
+          //sub_.reset();
+      }
     }
 
 
@@ -220,6 +235,8 @@ class IndividualMarkersNoKinect : public rclcpp::Node
           cv::Mat ipl_image = cv_ptr_->image;
           marker_detector.Detect(&ipl_image, cam, true, false, max_new_marker_error, max_track_error, CVSEQ, true);
           arPoseMarkers_.markers.clear ();
+
+          RCLCPP_WARN(this->get_logger(),"%d",marker_detector.markers->size());
 			    for (size_t i=0; i<marker_detector.markers->size(); i++)
 			    {
 				    //Get the pose relative to the camera

@@ -43,7 +43,7 @@ include_directories(include)
 
 # Kinect filtering code
 set(KINECT_FILTERING_TARGETS kinect_filtering medianFilter)
-set(ALVAR_TARGETS ar_track_alvar individualMarkers individualMarkersNoKinect trainMarkerBundle findMarkerBundles findMarkerBundlesNoKinect createMarker ar_track_alvar)
+set(ALVAR_TARGETS ar_track_alvar individualMarkers individualMarkersNoKinect trainMarkerBundle findMarkerBundles findMarkerBundlesNoKinect createMarker)
 
 set(dependencies
   OpenCV

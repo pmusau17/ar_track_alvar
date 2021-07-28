@@ -41,8 +41,8 @@ def generate_test_description():
 
         Node(
             package='ar_track_alvar',
-            executable='individualMarkers',
-            name='invidual_markers',
+            executable='individualMarkersNoKinect',
+            name='individual_markers',
             remappings=[
                 ("camera_image", cam_image_topic),
                 ("camera_info",cam_info_topic)
@@ -57,7 +57,7 @@ class TestArTrack(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         rclpy.init()
-        cls.node = rclpy.create_node('test_ar_track_alvar_node')
+        cls.node = rclpy.create_node('test_ar_track_alvar_markers')
 
     @classmethod
     def tearDownClass(cls):

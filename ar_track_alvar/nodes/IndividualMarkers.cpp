@@ -74,6 +74,7 @@ class IndividualMarkers : public rclcpp::Node
     rclcpp::Publisher<ar_track_alvar_msgs::msg::AlvarMarkers>::SharedPtr arMarkerPub_;
     rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr rvizMarkerPub_;
     rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr  rvizMarkerPub2_;
+    rclcpp::Subscription<sensor_msgs::msg::CameraInfo>::SharedPtr info_sub_;
 
     tf2_ros::TransformBroadcaster tf_broadcaster_;
     tf2_ros::TransformListener tf_listener_;
@@ -167,7 +168,7 @@ class IndividualMarkers : public rclcpp::Node
         }
 
         marker_detector.SetMarkerSize(marker_size, marker_resolution, marker_margin);
-        cam = new Camera(cam_info_topic);
+        cam = new Camera();
 
 
         arMarkerPub_ = this->create_publisher<ar_track_alvar_msgs::msg::AlvarMarkers> ("ar_pose_marker", 0);
@@ -189,8 +190,21 @@ class IndividualMarkers : public rclcpp::Node
           cloud_sub_ = this->create_subscription<sensor_msgs::msg::PointCloud2>(cam_image_topic, 1, 
             std::bind(&IndividualMarkers::getPointCloudCallback, this, std::placeholders::_1));
         }
+
+        RCLCPP_INFO(this->get_logger(),"Subscribing to info topic");
+	      info_sub_ = this->create_subscription<sensor_msgs::msg::CameraInfo>(cam_info_topic, 1, std::bind(&IndividualMarkers::InfoCallback, this, std::placeholders::_1));
      }
 
+    void InfoCallback (const sensor_msgs::msg::CameraInfo::SharedPtr cam_info) 
+    {
+      RCLCPP_INFO(this->get_logger(),"this executed");
+      if (!cam->getCamInfo_)
+      {
+          cam->SetCameraInfo(cam_info);
+          cam->getCamInfo_ = true;
+          //sub_.reset();
+      }
+    }
 
   //Debugging utility function
 void draw3dPoints(ARCloud::Ptr cloud, string frame, int color, int id, double rad)

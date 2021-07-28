@@ -77,6 +77,7 @@ class TrainMarkerBundle : public rclcpp::Node
 
 		ar_track_alvar_msgs::msg::AlvarMarkers arPoseMarkers_;
     	visualization_msgs::msg::Marker rvizMarker_;
+		rclcpp::Subscription<sensor_msgs::msg::CameraInfo>::SharedPtr info_sub_;
 		
 
 		int auto_count;
@@ -117,7 +118,7 @@ class TrainMarkerBundle : public rclcpp::Node
 			cam_info_topic = argv[6];
     		output_frame = argv[7];
 			marker_detector.SetMarkerSize(marker_size);
-			cam = new Camera(cam_info_topic);
+			cam = new Camera();
 
 
 			//Give tf a chance to catch up before the camera callback starts asking for transforms
@@ -135,6 +136,21 @@ class TrainMarkerBundle : public rclcpp::Node
 			//Subscribe to camera message
 			RCLCPP_INFO(this->get_logger(),"Subscribing to image topic");
 			cam_sub_ = image_transport::create_subscription(this, cam_image_topic, [&](auto& msg) { this->getCapCallback(msg); },"raw");
+
+			RCLCPP_INFO(this->get_logger(),"Subscribing to info topic");
+	        info_sub_ = this->create_subscription<sensor_msgs::msg::CameraInfo>(cam_info_topic, 1, std::bind(&TrainMarkerBundle::InfoCallback, this, std::placeholders::_1));
+
+		}
+
+		void InfoCallback (const sensor_msgs::msg::CameraInfo::SharedPtr cam_info) 
+		{
+		RCLCPP_INFO(this->get_logger(),"this executed");
+		if (!cam->getCamInfo_)
+		{
+			cam->SetCameraInfo(cam_info);
+			cam->getCamInfo_ = true;
+			//sub_.reset();
+		}
 		}
 
 		void getCapCallback (const sensor_msgs::msg::Image::ConstSharedPtr& image_msg)

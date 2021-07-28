@@ -74,6 +74,7 @@ class FindMarkerBundlesNoKinect : public rclcpp::Node
 
     rclcpp::Publisher<ar_track_alvar_msgs::msg::AlvarMarkers>::SharedPtr arMarkerPub_;
     rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr rvizMarkerPub_;
+    rclcpp::Subscription<sensor_msgs::msg::CameraInfo>::SharedPtr info_sub_;
 
 
     MarkerDetector<MarkerData> marker_detector;
@@ -142,7 +143,7 @@ class FindMarkerBundlesNoKinect : public rclcpp::Node
 
 
           // Set up camera, listeners, and broadcasters
-          cam = new Camera(cam_info_topic);
+          cam = new Camera();
 
           // Publishers
           rclcpp::Publisher<ar_track_alvar_msgs::msg::AlvarMarkers>::SharedPtr arMarkerPub_;
@@ -159,6 +160,10 @@ class FindMarkerBundlesNoKinect : public rclcpp::Node
           RCLCPP_INFO (this->get_logger(),"Subscribing to image topic");
           cam_sub_ = image_transport::create_subscription(this, cam_image_topic, [&](auto& msg) { this->getCapCallback(msg); },"raw");
 
+          RCLCPP_INFO(this->get_logger(),"Subscribing to info topic");
+	        info_sub_ = this->create_subscription<sensor_msgs::msg::CameraInfo>(cam_info_topic, 1, std::bind(&FindMarkerBundlesNoKinect::InfoCallback, this, std::placeholders::_1));
+
+
     }
 
     // Updates the bundlePoses of the multi_marker_bundles by detecting markers and using all markers in a bundle to infer the master tag's position
@@ -174,6 +179,17 @@ class FindMarkerBundlesNoKinect : public rclcpp::Node
         multi_marker_bundles[i]->Update(marker_detector.markers, cam, bundlePoses[i]);
           }
         }
+      }
+    }
+
+     void InfoCallback (const sensor_msgs::msg::CameraInfo::SharedPtr cam_info) 
+    {
+      RCLCPP_INFO(this->get_logger(),"this executed");
+      if (!cam->getCamInfo_)
+      {
+          cam->SetCameraInfo(cam_info);
+          cam->getCamInfo_ = true;
+          //sub_.reset();
       }
     }
 
