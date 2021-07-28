@@ -167,14 +167,13 @@ if(BUILD_TESTING)
   
   find_package(ament_lint_auto REQUIRED)
   ament_lint_auto_find_test_dependencies()
-  # find_package(ament_cmake_gtest REQUIRED)
-  # find_package(ament_download)
+  find_package(ament_download)
 
 
 
   ament_download(http://download.ros.org/data/ar_track_alvar/ar_track_alvar_4markers_tork_2017-02-08-11-21-14.bag
     FILENAME ar_track_alvar_4markers_tork_2017-02-08-11-21-14.bag
-    DESTINATION ${CMAKE_INSTALL_PREFIX}
+    DESTINATION ${CMAKE_INSTALL_PREFIX}/share/${PROJECT_NAME}
     MD5 627aa0316bbfe4334e06023d7c2b4087
    )
 

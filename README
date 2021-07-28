@@ -1,3 +1,17 @@
 See [ROS wiki](http://wiki.ros.org/ar_track_alvar) for the users document.
 
+### Testing (Build from Source)
 
+The testing suite for this package makes use of a ros1 bag, and depends on the following [repo](https://github.com/ros2/rosbag2_bag_v2). In order to get it to work
+you need to source both the ros1 underlay and the ros2 underlay in your ~/.bashrc file. Do this in a new terminal. 
+
+```
+# ROS1 
+source /opt/ros/noetic/setup.bash
+
+# ROS2
+source /opt/ros/foxy/setup.bash
+source /usr/share/colcon_cd/function/colcon_cd.sh 
+export _colcon_cd_root=/opt/ros/foxy
+
+```
