@@ -18,15 +18,15 @@ from ar_track_alvar_msgs.msg import AlvarMarkers
 
 # Test Parameters
 bag_name = os.path.join(get_package_share_directory('ar_track_alvar'),'ar_track_alvar_4markers_tork_2017-02-08-11-21-14.bag')
-cam_image_topic ="/camera/image_raw" 
-cam_info_topic = "/camera/camera_info" 	
+cam_image_topic ="camera/image_raw" 
+cam_info_topic = "camera/camera_info" 	
 marker_margin="2"
 marker_resolution="5"
 marker_size="2.3"
 max_new_marker_error="0.08"
 max_frequency="100"
 max_track_error="0.2"
-output_frame="/camera"
+output_frame="camera"
 
 @pytest.mark.rostest
 def generate_test_description():

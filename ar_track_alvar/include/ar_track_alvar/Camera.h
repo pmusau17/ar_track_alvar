@@ -84,7 +84,7 @@ struct ALVAR_EXPORT ProjPoints {
 /**
  * \brief Simple \e Camera class for calculating distortions, orientation or projections with pre-calibrated camera
  */
-class ALVAR_EXPORT Camera: public rclcpp::Node {
+class ALVAR_EXPORT Camera { //: public rclcpp::Node {
 
 public:
 
@@ -99,8 +99,8 @@ public:
 protected:
 	std::string cameraInfoTopic_;
 	sensor_msgs::msg::CameraInfo cam_info_;
-	void camInfoCallback (const sensor_msgs::msg::CameraInfo::SharedPtr cam_info);
-	rclcpp::Subscription<sensor_msgs::msg::CameraInfo>::SharedPtr sub_;
+	// void camInfoCallback (const sensor_msgs::msg::CameraInfo::SharedPtr cam_info);
+	// rclcpp::Subscription<sensor_msgs::msg::CameraInfo>::SharedPtr sub_;
 
 private:
 	bool LoadCalibXML(const char *calibfile);

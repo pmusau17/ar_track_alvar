@@ -190,6 +190,11 @@ if(BUILD_TESTING)
     PYTHON_EXECUTABLE "${PYTHON_EXECUTABLE}"
   )
 
+  # Legacy Tests
+  add_launch_test("test/test_ar_legacy.py"
+    PYTHON_EXECUTABLE "${PYTHON_EXECUTABLE}"
+  )
+
 endif()
 #TODO fix these tests
 # if(BUILD_TESTING)
