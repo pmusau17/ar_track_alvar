@@ -169,8 +169,6 @@ if(BUILD_TESTING)
   ament_lint_auto_find_test_dependencies()
   find_package(ament_download)
 
-
-
   ament_download(http://download.ros.org/data/ar_track_alvar/ar_track_alvar_4markers_tork_2017-02-08-11-21-14.bag
     FILENAME ar_track_alvar_4markers_tork_2017-02-08-11-21-14.bag
     DESTINATION ${CMAKE_INSTALL_PREFIX}/share/${PROJECT_NAME}
@@ -182,12 +180,16 @@ if(BUILD_TESTING)
     set(PYTHON_EXECUTABLE "${PYTHON_EXECUTABLE_DEBUG}")
   endif()
 
-
-  # Test DisparityNode in launch test
-  add_launch_test("test/test_ar_track_alvar.py"
+  # Test bag playing (if this fails all other tests will fail) 
+  add_launch_test("test/test_ar_track_alvar_bag.py"
     PYTHON_EXECUTABLE "${PYTHON_EXECUTABLE}"
   )
-  #ament_add_gtest(test)
+
+  # Test Individual Markers in launch test
+  add_launch_test("test/test_ar_track_alvar_individual_markers.py"
+    PYTHON_EXECUTABLE "${PYTHON_EXECUTABLE}"
+  )
+
 endif()
 #TODO fix these tests
 # if(BUILD_TESTING)
