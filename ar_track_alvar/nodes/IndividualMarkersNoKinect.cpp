@@ -196,7 +196,6 @@ class IndividualMarkersNoKinect : public rclcpp::Node
 
     void InfoCallback (const sensor_msgs::msg::CameraInfo::SharedPtr cam_info) 
     {
-      RCLCPP_INFO(this->get_logger(),"this executed");
       if (!cam->getCamInfo_)
       {
           cam->SetCameraInfo(cam_info);
@@ -215,28 +214,27 @@ class IndividualMarkersNoKinect : public rclcpp::Node
 		      geometry_msgs::msg::TransformStamped CamToOutput; 
     			try
           {
-				    tf2_.canTransform(output_frame, image_msg->header.frame_id, image_msg->header.stamp, rclcpp::Duration(1.0));
-					  CamToOutput = tf2_.lookupTransform(output_frame, image_msg->header.frame_id, image_msg->header.stamp, rclcpp::Duration(1.0));
+				    tf2_.canTransform(output_frame, image_msg->header.frame_id, image_msg->header.stamp);
+					  CamToOutput = tf2_.lookupTransform(output_frame, image_msg->header.frame_id, image_msg->header.stamp);
    				}
     			catch (tf2::TransformException ex){
       				RCLCPP_ERROR(this->get_logger(), "%s",ex.what());
     			}
 
-
           //Convert the image
           cv_ptr_ = cv_bridge::toCvCopy(image_msg, sensor_msgs::image_encodings::BGR8);
 
           //Get the estimated pose of the main markers by using all the markers in each bundle
-
           // GetMultiMarkersPoses expects an IplImage*, but as of ros groovy, cv_bridge gives
           // us a cv::Mat. I'm too lazy to change to cv::Mat throughout right now, so I
           // do this conversion here -jbinney
 
           cv::Mat ipl_image = cv_ptr_->image;
-          marker_detector.Detect(&ipl_image, cam, true, false, max_new_marker_error, max_track_error, CVSEQ, true);
+          marker_detector.Detect(&ipl_image, cam, true, true, max_new_marker_error, max_track_error, CVSEQ, true);
           arPoseMarkers_.markers.clear ();
 
-          RCLCPP_WARN(this->get_logger(),"%d",marker_detector.markers->size());
+          RCLCPP_WARN(this->get_logger(),"Markers detected %d",marker_detector.markers->size());
+
 			    for (size_t i=0; i<marker_detector.markers->size(); i++)
 			    {
 				    //Get the pose relative to the camera

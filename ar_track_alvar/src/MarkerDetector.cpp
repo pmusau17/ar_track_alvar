@@ -102,9 +102,12 @@ namespace alvar {
 		}
 
 		labeling->SetCamera(cam);
-		labeling->LabelSquares(image, visualize);
+		labeling->LabelSquares(*image, visualize);
 		vector<vector<PointDouble> >& blob_corners = labeling->blob_corners;
-		cv::Mat* gray = labeling->gray;
+		
+		cv::Mat temp = labeling->gray;
+		
+		cv::Mat* gray = &temp;
 
 		int orientation;
 
