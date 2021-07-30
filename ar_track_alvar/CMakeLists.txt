@@ -36,7 +36,7 @@ find_package(visualization_msgs REQUIRED)
 find_package(PCL REQUIRED QUIET COMPONENTS common io)
 
 find_package(Eigen3 REQUIRED)
-find_package(TinyXML2 REQUIRED)
+find_package(tinyxml_vendor)
 
 include_directories(include)
 
@@ -52,7 +52,7 @@ set(dependencies
   pcl_ros
   pcl_conversions 
   std_msgs 
-  TinyXML2
+  tinyxml_vendor
   image_transport
   perception_pcl 
   visualization_msgs 
@@ -67,45 +67,43 @@ set(dependencies
 
 include_directories(include
                     ${OpenCV_INCLUDE_DIRS}
-                    ${TinyXML2_INCLUDE_DIRS}
+                    ${TinyXML_INCLUDE_DIRS}
                     ${PCL_COMMON_INCLUDE_DIRS}
 )
 
-add_library(ar_track_alvar
-    src/Camera.cpp
-    src/CaptureDevice.cpp
-    src/Pose.cpp
-    src/Marker.cpp
-    src/MarkerDetector.cpp
+add_library(${PROJECT_NAME}
     src/Bitset.cpp
-    src/Rotation.cpp
-    src/CvTestbed.cpp
+    src/Camera.cpp
     src/CaptureDevice.cpp
     src/CaptureFactory.cpp
     src/CaptureFactory_unix.cpp
-    src/FileFormatUtils.cpp
-    src/Threads.cpp
-    src/Threads_unix.cpp
-    src/Mutex.cpp
-    src/Mutex_unix.cpp
     src/ConnectedComponents.cpp
-    src/Line.cpp 
-    src/Plugin.cpp
-    src/Plugin_unix.cpp
+    src/CvTestbed.cpp
     src/DirectoryIterator.cpp
     src/DirectoryIterator_unix.cpp
     src/Draw.cpp
-    src/Util.cpp
+    src/FileFormatUtils.cpp
     src/Filter.cpp
     src/Kalman.cpp
-    src/kinect_filtering.cpp
-    src/Optimization.cpp
+    src/Line.cpp
+    src/Marker.cpp
+    src/MarkerDetector.cpp
     src/MultiMarker.cpp
     src/MultiMarkerBundle.cpp
     src/MultiMarkerInitializer.cpp
-    )
+    src/Mutex.cpp
+    src/Mutex_unix.cpp
+    src/Optimization.cpp
+    src/Plugin.cpp
+    src/Plugin_unix.cpp
+    src/Pose.cpp
+    src/Rotation.cpp
+    src/Threads.cpp
+    src/Threads_unix.cpp
+    src/Util.cpp
+)
     
-target_link_libraries(${PROJECT_NAME} ${OpenCV_LIBRARIES} ${TinyXML_LIBRARIES})
+target_link_libraries(${PROJECT_NAME} ${OpenCV_LIBRARIES} tinyxml)
 ament_target_dependencies(ar_track_alvar ${dependencies})
 
 add_library(kinect_filtering src/kinect_filtering.cpp)
@@ -113,11 +111,11 @@ ament_target_dependencies(kinect_filtering ${dependencies})
 
 
 add_library(medianFilter src/medianFilter.cpp)
-target_link_libraries(medianFilter ar_track_alvar)
+target_link_libraries(medianFilter ar_track_alvar ${TinyXML_LIBRARIES})
 ament_target_dependencies(medianFilter ${dependencies})
 
 add_executable(individualMarkers nodes/IndividualMarkers.cpp)
-target_link_libraries(individualMarkers ar_track_alvar kinect_filtering)
+target_link_libraries(individualMarkers ar_track_alvar kinect_filtering  ${TinyXML_LIBRARIES})
 ament_target_dependencies(individualMarkers ${dependencies})
 
 add_executable(individualMarkersNoKinect nodes/IndividualMarkersNoKinect.cpp)
@@ -125,20 +123,20 @@ target_link_libraries(individualMarkersNoKinect ar_track_alvar)
 ament_target_dependencies(individualMarkersNoKinect ${dependencies})
 
 add_executable(trainMarkerBundle nodes/TrainMarkerBundle.cpp)
-target_link_libraries(trainMarkerBundle ar_track_alvar)
+target_link_libraries(trainMarkerBundle ar_track_alvar  ${TinyXML_LIBRARIES})
 ament_target_dependencies(trainMarkerBundle ${dependencies})
 
 
 add_executable(findMarkerBundles nodes/FindMarkerBundles.cpp)
-target_link_libraries(findMarkerBundles ar_track_alvar kinect_filtering medianFilter)
+target_link_libraries(findMarkerBundles ar_track_alvar kinect_filtering medianFilter  ${TinyXML_LIBRARIES})
 ament_target_dependencies(findMarkerBundles ${dependencies})
 
 add_executable(findMarkerBundlesNoKinect nodes/FindMarkerBundlesNoKinect.cpp)
-target_link_libraries(findMarkerBundlesNoKinect ar_track_alvar)
+target_link_libraries(findMarkerBundlesNoKinect ar_track_alvar  ${TinyXML_LIBRARIES})
 ament_target_dependencies(findMarkerBundlesNoKinect ${dependencies})
 
 add_executable(createMarker src/SampleMarkerCreator.cpp)
-target_link_libraries(createMarker ar_track_alvar)
+target_link_libraries(createMarker ar_track_alvar  ${TinyXML_LIBRARIES})
 ament_target_dependencies(createMarker ${dependencies})
 
 

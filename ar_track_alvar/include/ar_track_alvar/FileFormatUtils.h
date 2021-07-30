@@ -32,54 +32,54 @@
  */
 
 #include "Alvar.h"
-#include <opencv2/core/core.hpp>
-#include <opencv2/core/core_c.h>
-#include <opencv2/opencv.hpp>
-#include <tinyxml2.h>
+#include <opencv2/core.hpp>
+#include "tinyxml.h"
 
-namespace alvar {
+namespace alvar
+{
+/** \brief Utility functions for file reading / writing.
+ */
+class ALVAR_EXPORT FileFormatUtils
+{
+private:
+  /**
+   * \brief Reads matrix type, rows and cols from XML element.
+   * \return true if XML element appears to be valid; otherwise false.
+   */
+  static bool decodeXMLMatrix(const TiXmlElement* xml_matrix, int& type,
+                              int& rows, int& cols);
 
-	/** \brief Utility functions for file reading / writing.
-	 */
-	class ALVAR_EXPORT FileFormatUtils {
-	private:
-		/**
-		 * \brief Reads matrix type, rows and cols from XML element.
-		 * \return true if XML element appears to be valid; otherwise false.
-		 */
-		static bool decodeXMLMatrix(const tinyxml2::XMLElement  *xml_matrix, int &type, int &rows, int &cols);
+public:
+  /** \brief Allocates cv::Mat of a correct type and size.
+   * \param xml_matrix alvar:matrix element.
+   * \return cv::Mat that has the correct size for \e parseXMLMatrix.
+   */
+  static cv::Mat* allocateXMLMatrix(const TiXmlElement* xml_matrix);
 
-	public:
+  /** \brief Reads contents of alvar:matrix into cv::Mat.
+   *
+   * Parsing fails if the matrix is not the same type or does not have
+   * the same number of rows and columns as the XML element.
+   *
+   * \param xml_matrix alvar:matrix element. If NULL no parsing is done and
+   *                   false is returned.
+   * \param matrix cv::Mat that has the correct size, populated with data in
+   *               the xml_matrix.
+   * \return true if matrix was successfully parsed; otherwise false.
+   */
+  static bool parseXMLMatrix(const TiXmlElement* xml_matrix, cv::Mat& matrix);
 
-		/** \brief Allocates CvMat of a correct type and size.
-		 * \param xml_matrix alvar:matrix element.
-		 * \return CvMat that has the correct size for \e parseXMLMatrix.
-		 */
-		static CvMat* allocateXMLMatrix(const tinyxml2::XMLElement  *xml_matrix);
+  /** \brief Allocates new XML element and populates it with a cv::Mat data.
+   *
+   * The returned element needs to be deallocated by the caller.
+   *
+   * \param element_name Name of the allocated tiXmlElement.
+   * \param matrix Data that is written into the returned XML element.
+   * \return Newly allocated TiXmlElement.
+   */
+  static TiXmlElement* createXMLMatrix(const char* element_name,
+                                       const cv::Mat& matrix);
+};
+}  // namespace alvar
 
-		/** \brief Reads contents of alvar:matrix into CvMat.
-		 *
-		 * Parsing fails if the matrix is not the same type or does not have
-		 * the same number of rows and columns as the XML element.
-		 *
-		 * \param xml_matrix alvar:matrix element. If NULL no parsing is done and
-		 *                   false is returned.
-		 * \param matrix CvMat that has the correct size, populated with data in
-		 *               the xml_matrix.
-		 * \return true if matrix was successfully parsed; otherwise false.
-		 */
-		static bool parseXMLMatrix(const tinyxml2::XMLElement  *xml_matrix, CvMat *matrix);
-
-		/** \brief Allocates new XML element and populates it with a CvMat data.
-		 *
-		 * The returned element needs to be deallocated by the caller.
-		 *
-		 * \param element_name Name of the allocated tiXmlElement.
-		 * \param matrix Data that is written into the returned XML element.
-		 * \return Newly allocated TiXmlElement.
-		 */
-		static tinyxml2::XMLElement* createXMLMatrix(const char* element_name, const CvMat *matrix);
-	};
-}
-
-#endif //FILEFORMATUTILS_H
+#endif  // FILEFORMATUTILS_H

@@ -245,14 +245,14 @@ class TrainMarkerBundle : public rclcpp::Node
 
 			double error = -1;
 			if (!optimize_done) {
-				if (marker_detector.Detect(image, cam, true, false, max_new_marker_error, max_track_error, CVSEQ, true)) {
+				if (marker_detector.Detect(*image, cam, true, false, max_new_marker_error, max_track_error, CVSEQ, true)) {
 					error = multi_marker_init->Update(marker_detector.markers, cam, pose);
 				}
 			} 
 			else {
-				if (marker_detector.Detect(image, cam, true, false, max_new_marker_error, max_track_error, CVSEQ, true)) {
+				if (marker_detector.Detect(*image, cam, true, false, max_new_marker_error, max_track_error, CVSEQ, true)) {
 					error = multi_marker_bundle->Update(marker_detector.markers, cam, pose);
-					if ((multi_marker_bundle->SetTrackMarkers(marker_detector, cam, pose, image) > 0) && (marker_detector.DetectAdditional(image, cam, false) > 0))
+					if ((multi_marker_bundle->SetTrackMarkers(marker_detector, cam, pose, *image) > 0) && (marker_detector.DetectAdditional(*image, cam, false) > 0))
 					{    
 						error = multi_marker_bundle->Update(marker_detector.markers, cam, pose);
 					}

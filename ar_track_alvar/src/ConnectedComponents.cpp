@@ -40,6 +40,8 @@ Labeling::Labeling()
 
 Labeling::~Labeling()
 {
+  gray.release();
+  bw.release();
 }
 
 bool Labeling::CheckBorder(const std::vector<cv::Point>& contour, int width,

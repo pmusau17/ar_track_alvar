@@ -208,7 +208,7 @@ class IndividualMarkersNoKinect : public rclcpp::Node
     void getCapCallback (const sensor_msgs::msg::Image::SharedPtr image_msg)
     {
         //If we've already gotten the cam info, then go ahead
-	      if(cam->getCamInfo_){
+        if(cam->getCamInfo_){
 		    try
         {
 		      geometry_msgs::msg::TransformStamped CamToOutput; 
@@ -230,23 +230,31 @@ class IndividualMarkersNoKinect : public rclcpp::Node
           // do this conversion here -jbinney
 
           cv::Mat ipl_image = cv_ptr_->image;
-          marker_detector.Detect(&ipl_image, cam, true, true, max_new_marker_error, max_track_error, CVSEQ, true);
-          arPoseMarkers_.markers.clear ();
 
-          RCLCPP_WARN(this->get_logger(),"Markers detected %d",marker_detector.markers->size());
+          marker_detector.Detect(cv_ptr_->image, cam, true, false,
+                             max_new_marker_error, max_track_error, CVSEQ,
+                             true);
+          arPoseMarkers_.markers.clear();
+
+
+          //marker_detector.Detect(ipl_image, cam, true, true, max_new_marker_error, max_track_error, CVSEQ, true);
+          arPoseMarkers_.markers.clear ();
 
 			    for (size_t i=0; i<marker_detector.markers->size(); i++)
 			    {
-				    //Get the pose relative to the camera
-        		int id = (*(marker_detector.markers))[i].GetId();
-				    Pose p = (*(marker_detector.markers))[i].pose;
-				    double px = p.translation[0]/100.0;
-				    double py = p.translation[1]/100.0;
-				    double pz = p.translation[2]/100.0;
-				    double qx = p.quaternion[1];
-				    double qy = p.quaternion[2];
-				    double qz = p.quaternion[3];
-				    double qw = p.quaternion[0];
+				    // Get the pose relative to the camera
+             int id = (*(marker_detector.markers))[i].GetId();
+            Pose p = (*(marker_detector.markers))[i].pose;
+            double px = p.translation[0] / 100.0;
+            double py = p.translation[1] / 100.0;
+            double pz = p.translation[2] / 100.0;
+
+            cv::Mat quat =cv::Mat(4, 1, CV_64F);
+            p.GetQuaternion(quat);
+            double qx = quat.at<double>(1,0); //p.quaternion[1]; #leaving these for the record, this was a bug in the original repo
+            double qy = quat.at<double>(2,0); //p.quaternion[2];
+            double qz = quat.at<double>(3,0); //p.quaternion[3];
+            double qw = quat.at<double>(0,0); //p.quaternion[0];
 
             tf2::Quaternion rotation (qx,qy,qz,qw);
             tf2::Vector3 origin (px,py,pz);

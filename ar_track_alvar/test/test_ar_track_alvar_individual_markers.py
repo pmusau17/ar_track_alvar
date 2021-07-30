@@ -47,7 +47,7 @@ def generate_test_description():
                 ("camera_image", cam_image_topic),
                 ("camera_info",cam_info_topic)
             ],
-            arguments=[marker_size, max_new_marker_error, max_track_error, cam_image_topic, cam_info_topic, output_frame],
+            arguments=[marker_size,max_new_marker_error, max_track_error,cam_image_topic,  cam_info_topic, output_frame, max_frequency, marker_resolution, marker_margin],
             output='screen'
         ),
         launch_testing.actions.ReadyToTest(),

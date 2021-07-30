@@ -170,12 +170,7 @@ void BuildHideTexture(cv::Mat& image, cv::Mat& hide_texture, Camera* cam,
       cv::Mat points3d_mat, points2d_mat;
       points3d_mat = cv::Mat(4, 3, CV_64F, points3d);
       points2d_mat = cv::Mat(4, 2, CV_64F, points2d);
-
-
-	  CvMat temp = cvMat(points3d_mat);
-	  CvMat temp2 = cvMat(points2d_mat);
-
-      cam->ProjectPoints(&temp, gl_modelview, &temp2);
+      cam->ProjectPoints(points3d_mat, gl_modelview, points2d_mat);
       int kuvanx4 = (int)Limit(points2d[0][0], 0, image.cols - 1);
       int kuvany4 = (int)Limit(points2d[0][1], 0, image.rows - 1);
       int kuvanx5 = (int)Limit(points2d[1][0], 0, image.cols - 1);
@@ -247,13 +242,7 @@ void DrawTexture(cv::Mat& image, cv::Mat& texture, Camera* cam,
   cv::Mat points3d_mat, points2d_mat;
   points3d_mat = cv::Mat(4, 3, CV_64F, points3d);
   points2d_mat = cv::Mat(4, 2, CV_64F, points2d);
-
-  CvMat temp = cvMat(points3d_mat);
-  CvMat temp2 = cvMat(points2d_mat);
-
-  cam->ProjectPoints(&temp, gl_modelview, &temp2);
-  
-  //cam->ProjectPoints(points3d_mat, gl_modelview, points2d_mat);
+  cam->ProjectPoints(points3d_mat, gl_modelview, points2d_mat);
 
   // Warp texture and mask using the perspective that is based on the corners
   double map[9];

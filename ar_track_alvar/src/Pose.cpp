@@ -22,162 +22,184 @@
  */
 
 #include "ar_track_alvar/Pose.h"
-#include "opencv2/core/types_c.h"
 
 using namespace std;
 
-namespace alvar {
+namespace alvar
+{
 using namespace std;
 
-void Pose::Output() const {
-	cout<<quaternion[0]<<","<<quaternion[1]<<","<<quaternion[2]<<","<<quaternion[3]<<"|";
-	cout<<translation[0]<<","<<translation[1]<<","<<translation[2]<<endl;
+void Pose::Output() const
+{
+  cout << quaternion[0] << "," << quaternion[1] << "," << quaternion[2] << ","
+       << quaternion[3] << "|";
+  cout << translation[0] << "," << translation[1] << "," << translation[2]
+       << endl;
 }
 
-Pose::Pose() : Rotation() {
-	cvInitMatHeader(&translation_mat, 4, 1, CV_64F, translation);
-	cvZero(&translation_mat);
-	cvmSet(&translation_mat, 3, 0, 1);
+Pose::Pose() : Rotation()
+{
+  translation_mat = cv::Mat(4, 1, CV_64F, translation);
+  translation_mat.setTo(cv::Scalar::all(0));
+  translation_mat.at<double>(3, 0) = 1;
 }
 
-Pose::Pose(CvMat *tra, CvMat *rot, RotationType t) : Rotation(rot, t) {
-	cvInitMatHeader(&translation_mat, 4, 1, CV_64F, translation);
-	cvZero(&translation_mat);
-	cvmSet(&translation_mat, 3, 0, 1);
-	// Fill in translation part
-	cvmSet(&translation_mat, 0, 0, cvmGet(tra, 0, 0));
-	cvmSet(&translation_mat, 1, 0, cvmGet(tra, 1, 0));
-	cvmSet(&translation_mat, 2, 0, cvmGet(tra, 2, 0));
+Pose::Pose(const cv::Mat& tra, const cv::Mat& rot, RotationType t)
+  : Rotation(rot, t)
+{
+  translation_mat = cv::Mat(4, 1, CV_64F, translation);
+  translation_mat.setTo(cv::Scalar::all(0));
+  translation_mat.at<double>(3, 0) = 1;
+  // Fill in translation part
+  translation_mat.at<double>(0, 0) = tra.at<double>(0, 0);
+  translation_mat.at<double>(1, 0) = tra.at<double>(1, 0);
+  translation_mat.at<double>(2, 0) = tra.at<double>(2, 0);
 }
 
-Pose::Pose(CvMat *mat) : Rotation(mat, MAT) {
-	cvInitMatHeader(&translation_mat, 4, 1, CV_64F, translation);
-	cvZero(&translation_mat);
-	cvmSet(&translation_mat, 3, 0, 1);
-	// Fill in translation part
-	if (mat->cols == 4) {
-		cvmSet(&translation_mat, 0, 0, cvmGet(mat, 0, 3));
-		cvmSet(&translation_mat, 1, 0, cvmGet(mat, 1, 3));
-		cvmSet(&translation_mat, 2, 0, cvmGet(mat, 2, 3));
-	}
+Pose::Pose(const cv::Mat& mat) : Rotation(mat, MAT)
+{
+  translation_mat = cv::Mat(4, 1, CV_64F, translation);
+  translation_mat.setTo(cv::Scalar::all(0));
+  translation_mat.at<double>(3, 0) = 1;
+  // Fill in translation part
+  if (mat.cols == 4)
+  {
+    translation_mat.at<double>(0, 0) = mat.at<double>(0, 3);
+    translation_mat.at<double>(1, 0) = mat.at<double>(1, 3);
+    translation_mat.at<double>(2, 0) = mat.at<double>(2, 3);
+  }
 }
 
-Pose::Pose(const Pose& p) :Rotation(p) {
-	cvInitMatHeader(&translation_mat, 4, 1, CV_64F, translation);
-	cvCopy(&p.translation_mat, &translation_mat);
+Pose::Pose(const Pose& p) : Rotation(p)
+{
+  translation_mat = cv::Mat(4, 1, CV_64F, translation);
+  p.translation_mat.copyTo(translation_mat);
 }
 
 void Pose::Reset()
 {
-	cvZero(&quaternion_mat); cvmSet(&quaternion_mat, 0, 0, 1);
-	cvZero(&translation_mat);
+  quaternion_mat.setTo(cv::Scalar::all(0));
+  quaternion_mat.at<double>(0, 0) = 1;
+  translation_mat.setTo(cv::Scalar::all(0));
 }
 
-void Pose::SetMatrix(const CvMat *mat)
+void Pose::SetMatrix(const cv::Mat& mat)
 {
-	double tmp[9];
-	for(int i = 0; i < 3; ++i)
-		for(int j = 0; j < 3; ++j)
-			tmp[i*3+j] = cvmGet(mat, i, j);
-			
-	Mat9ToQuat(tmp, quaternion);
-	if (mat->cols == 4) {
-		cvmSet(&translation_mat, 0, 0, cvmGet(mat, 0, 3));
-		cvmSet(&translation_mat, 1, 0, cvmGet(mat, 1, 3));
-		cvmSet(&translation_mat, 2, 0, cvmGet(mat, 2, 3));
-		cvmSet(&translation_mat, 3, 0, 1);
-	}
+  double tmp[9];
+  for (int i = 0; i < 3; ++i)
+    for (int j = 0; j < 3; ++j)
+      tmp[i * 3 + j] = mat.at<double>(i, j);
+
+  Mat9ToQuat(tmp, quaternion);
+  if (mat.cols == 4)
+  {
+    translation_mat.at<double>(0, 0) = mat.at<double>(0, 3);
+    translation_mat.at<double>(1, 0) = mat.at<double>(1, 3);
+    translation_mat.at<double>(2, 0) = mat.at<double>(2, 3);
+    translation_mat.at<double>(3, 0) = 1;
+  }
 }
 
-void Pose::GetMatrix(CvMat *mat) const
+void Pose::GetMatrix(cv::Mat& mat) const
 {
-	if (mat->width == 3) {
-		QuatToMat9(quaternion, mat->data.db);
-	} else if (mat->width == 4) {
-		cvSetIdentity(mat);
-		QuatToMat16(quaternion, mat->data.db);
-		cvmSet(mat, 0, 3, cvmGet(&translation_mat, 0, 0));
-		cvmSet(mat, 1, 3, cvmGet(&translation_mat, 1, 0));
-		cvmSet(mat, 2, 3, cvmGet(&translation_mat, 2, 0));
-	}
+  if (mat.cols == 3)
+  {
+    QuatToMat9(quaternion, mat.ptr<double>(0));
+  }
+  else if (mat.cols == 4)
+  {
+    cv::setIdentity(mat);
+    QuatToMat16(quaternion, mat.ptr<double>(0));
+    mat.at<double>(0, 3) = translation_mat.at<double>(0, 0);
+    mat.at<double>(1, 3) = translation_mat.at<double>(1, 0);
+    mat.at<double>(2, 3) = translation_mat.at<double>(2, 0);
+  }
 }
 
 void Pose::GetMatrixGL(double gl[16], bool mirror)
 {
-	if (mirror) Mirror(false, true, true);
-	CvMat gl_mat = cvMat(4, 4, CV_64F, gl);
-	GetMatrix(&gl_mat);
-	cvTranspose(&gl_mat, &gl_mat);
-	if (mirror) Mirror(false, true, true);
+  if (mirror)
+    Mirror(false, true, true);
+  cv::Mat gl_mat = cv::Mat(4, 4, CV_64F, gl);
+  GetMatrix(gl_mat);
+  gl_mat = gl_mat.t();
+  if (mirror)
+    Mirror(false, true, true);
 }
 
 void Pose::SetMatrixGL(double gl[16], bool mirror)
 {
-	double gll[16];
-	memcpy(gll, gl, sizeof(double)*16);
-	CvMat gl_mat = cvMat(4, 4, CV_64F, gll);
-	cvTranspose(&gl_mat, &gl_mat);
-	SetMatrix(&gl_mat);
-	if (mirror) Mirror(false, true, true);
+  double gll[16];
+  memcpy(gll, gl, sizeof(double) * 16);
+  cv::Mat gl_mat = cv::Mat(4, 4, CV_64F, gll);
+  gl_mat = gl_mat.t();
+  SetMatrix(gl_mat);
+  if (mirror)
+    Mirror(false, true, true);
 }
 
 void Pose::Transpose()
 {
-	double tmp[16];
-	CvMat tmp_mat = cvMat(4, 4, CV_64F, tmp);
-	GetMatrix(&tmp_mat);
-	cvTranspose(&tmp_mat, &tmp_mat);
-	SetMatrix(&tmp_mat);
+  double tmp[16];
+  cv::Mat tmp_mat = cv::Mat(4, 4, CV_64F, tmp);
+  GetMatrix(tmp_mat);
+  tmp_mat = tmp_mat.t();
+  SetMatrix(tmp_mat);
 }
 
 void Pose::Invert()
 {
-	double tmp[16];
-	CvMat tmp_mat = cvMat(4, 4, CV_64F, tmp);
-	GetMatrix(&tmp_mat);
-	cvInvert(&tmp_mat, &tmp_mat);
-	SetMatrix(&tmp_mat);
+  double tmp[16];
+  cv::Mat tmp_mat = cv::Mat(4, 4, CV_64F, tmp);
+  GetMatrix(tmp_mat);
+  tmp_mat = tmp_mat.inv();
+  SetMatrix(tmp_mat);
 }
 
 void Pose::Mirror(bool x, bool y, bool z)
 {
-	double tmp[16];
-	CvMat tmp_mat = cvMat(4, 4, CV_64F, tmp);
-	GetMatrix(&tmp_mat);
-	MirrorMat(&tmp_mat, x, y, z);
-	SetMatrix(&tmp_mat);
+  double tmp[16];
+  cv::Mat tmp_mat = cv::Mat(4, 4, CV_64F, tmp);
+  GetMatrix(tmp_mat);
+  MirrorMat(tmp_mat, x, y, z);
+  SetMatrix(tmp_mat);
 }
 
-void Pose::SetTranslation(const CvMat *tra) {
-	cvmSet(&translation_mat, 0, 0, cvmGet(tra, 0, 0));
-	cvmSet(&translation_mat, 1, 0, cvmGet(tra, 1, 0));
-	cvmSet(&translation_mat, 2, 0, cvmGet(tra, 2, 0));
-	cvmSet(&translation_mat, 3, 0, 1);
-}
-void Pose::SetTranslation(const double *tra) {
-	translation[0] = tra[0];
-	translation[1] = tra[1];
-	translation[2] = tra[2];
-	translation[3] = 1;
-}
-void Pose::SetTranslation(const double x, const double y, const double z) {
-	translation[0] = x;
-	translation[1] = y;
-	translation[2] = z;
-	translation[3] = 1;
-}
-void Pose::GetTranslation( CvMat *tra) const{
-	cvmSet(tra, 0, 0, cvmGet(&translation_mat, 0, 0));
-	cvmSet(tra, 1, 0, cvmGet(&translation_mat, 1, 0));
-	cvmSet(tra, 2, 0, cvmGet(&translation_mat, 2, 0));
-	if (tra->rows == 4)	cvmSet(tra, 3, 0, 1);
-}
-
-Pose& Pose::operator = (const Pose& p)
+void Pose::SetTranslation(const cv::Mat& tra)
 {
-	memcpy(quaternion, p.quaternion, 4*sizeof(double));
-	memcpy(translation, p.translation, 4*sizeof(double));
-	return *this;
+  translation_mat.at<double>(0, 0) = tra.at<double>(0, 0);
+  translation_mat.at<double>(1, 0) = tra.at<double>(1, 0);
+  translation_mat.at<double>(2, 0) = tra.at<double>(2, 0);
+  translation_mat.at<double>(3, 0) = 1;
+}
+void Pose::SetTranslation(const double* tra)
+{
+  translation[0] = tra[0];
+  translation[1] = tra[1];
+  translation[2] = tra[2];
+  translation[3] = 1;
+}
+void Pose::SetTranslation(const double x, const double y, const double z)
+{
+  translation[0] = x;
+  translation[1] = y;
+  translation[2] = z;
+  translation[3] = 1;
+}
+void Pose::GetTranslation(cv::Mat& tra) const
+{
+  tra.at<double>(0, 0) = translation_mat.at<double>(0, 0);
+  tra.at<double>(1, 0) = translation_mat.at<double>(1, 0);
+  tra.at<double>(2, 0) = translation_mat.at<double>(2, 0);
+  if (tra.rows == 4)
+    tra.at<double>(3, 0) = 1;
 }
 
-} // namespace alvar
+Pose& Pose::operator=(const Pose& p)
+{
+  memcpy(quaternion, p.quaternion, 4 * sizeof(double));
+  memcpy(translation, p.translation, 4 * sizeof(double));
+  return *this;
+}
+
+}  // namespace alvar

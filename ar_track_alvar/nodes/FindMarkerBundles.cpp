@@ -493,7 +493,7 @@ class FindMarkerBundles : public rclcpp::Node
     }
     
     //Detect and track the markers
-    if (marker_detector.Detect(image, cam, true, false, max_new_marker_error,
+    if (marker_detector.Detect(*image, cam, true, false, max_new_marker_error,
             max_track_error, CVSEQ, true)) 
       {
         //printf("\n--------------------------\n\n");

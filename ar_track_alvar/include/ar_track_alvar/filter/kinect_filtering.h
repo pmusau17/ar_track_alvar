@@ -29,8 +29,8 @@
  */
 
 /**
- * \file 
- * 
+ * \file
+ *
  * Library for depth based filtering
  *
  * \author Bhaskara Marthi
@@ -51,7 +51,6 @@
 #include <pcl/sample_consensus/method_types.h>
 #include <pcl/sample_consensus/model_types.h>
 #include <pcl/segmentation/sac_segmentation.h>
-// #include <pcl_ros/point_cloud.hpp>
 #include <pcl/filters/extract_indices.h>
 #include <boost/lexical_cast.hpp>
 #include <Eigen/StdVector>
@@ -62,47 +61,44 @@
 
 namespace ar_track_alvar
 {
-
 typedef pcl::PointXYZRGB ARPoint;
 typedef pcl::PointCloud<ARPoint> ARCloud;
 
 // Result of plane fit: inliers and the plane equation
 struct PlaneFitResult
 {
-  EIGEN_MAKE_ALIGNED_OPERATOR_NEW  
-  PlaneFitResult () : inliers(ARCloud::Ptr(new ARCloud)) {}
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+  PlaneFitResult() : inliers(ARCloud::Ptr(new ARCloud))
+  {
+  }
   ARCloud::Ptr inliers;
   pcl::ModelCoefficients coeffs;
 };
 
 // Select out a subset of a cloud corresponding to a set of pixel coordinates
-ARCloud::Ptr filterCloud (const ARCloud& cloud,
-                          const std::vector<cv::Point, Eigen::aligned_allocator<cv::Point> >& pixels);
+ARCloud::Ptr filterCloud(
+    const ARCloud& cloud,
+    const std::vector<cv::Point, Eigen::aligned_allocator<cv::Point> >& pixels);
 
 // Wrapper for PCL plane fitting
-PlaneFitResult fitPlane (ARCloud::ConstPtr cloud);
+PlaneFitResult fitPlane(ARCloud::ConstPtr cloud);
 
-// Given the coefficients of a plane, and two points p1 and p2, we produce a 
+// Given the coefficients of a plane, and two points p1 and p2, we produce a
 // quaternion q that sends p2'-p1' to (1,0,0) and n to (0,0,1), where p1' and
-// p2' are the projections of p1 and p2 onto the plane and n is the normal. 
+// p2' are the projections of p1 and p2 onto the plane and n is the normal.
 // There's a sign ambiguity here, which is resolved by requiring that the
 // difference p4'-p3' ends up with a positive y coordinate
-int
-extractOrientation (const pcl::ModelCoefficients& coeffs,
-                    const ARPoint& p1, const ARPoint& p2,
-                    const ARPoint& p3, const ARPoint& p4,
-                    geometry_msgs::msg::Quaternion &retQ);
+int extractOrientation(const pcl::ModelCoefficients& coeffs, const ARPoint& p1,
+                       const ARPoint& p2, const ARPoint& p3, const ARPoint& p4,
+                       geometry_msgs::msg::Quaternion& retQ);
 
 // Like extractOrientation except return value is a btMatrix3x3
-int
-extractFrame (const pcl::ModelCoefficients& coeffs,
-              const ARPoint& p1, const ARPoint& p2,
-              const ARPoint& p3, const ARPoint& p4,
-              tf2::Matrix3x3 &retmat);
-
+int extractFrame(const pcl::ModelCoefficients& coeffs, const ARPoint& p1,
+                 const ARPoint& p2, const ARPoint& p3, const ARPoint& p4,
+                 tf2::Matrix3x3& retmat);
 
 // Return the centroid (mean) of a point cloud
-geometry_msgs::msg::Point centroid (const ARCloud& points);
-} // namespace
+geometry_msgs::msg::Point centroid(const ARCloud& points);
+}  // namespace ar_track_alvar
 
-#endif // include guard
+#endif  // include guard

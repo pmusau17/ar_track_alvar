@@ -169,13 +169,13 @@ class FindMarkerBundlesNoKinect : public rclcpp::Node
     // Updates the bundlePoses of the multi_marker_bundles by detecting markers and using all markers in a bundle to infer the master tag's position
     void GetMultiMarkerPoses(cv::Mat *image) {
 
-      if (marker_detector.Detect(image, cam, true, false, max_new_marker_error, max_track_error, CVSEQ, true)){
+      if (marker_detector.Detect(*image, cam, true, false, max_new_marker_error, max_track_error, CVSEQ, true)){
         for(int i=0; i<n_bundles; i++)
           multi_marker_bundles[i]->Update(marker_detector.markers, cam, bundlePoses[i]);
         
-        if(marker_detector.DetectAdditional(image, cam, false) > 0){
+        if(marker_detector.DetectAdditional(*image, cam, false) > 0){
           for(int i=0; i<n_bundles; i++){
-      if ((multi_marker_bundles[i]->SetTrackMarkers(marker_detector, cam, bundlePoses[i], image) > 0))
+      if ((multi_marker_bundles[i]->SetTrackMarkers(marker_detector, cam, bundlePoses[i], *image) > 0))
         multi_marker_bundles[i]->Update(marker_detector.markers, cam, bundlePoses[i]);
           }
         }

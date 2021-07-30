@@ -197,7 +197,6 @@ class IndividualMarkers : public rclcpp::Node
 
     void InfoCallback (const sensor_msgs::msg::CameraInfo::SharedPtr cam_info) 
     {
-      RCLCPP_INFO(this->get_logger(),"this executed");
       if (!cam->getCamInfo_)
       {
           cam->SetCameraInfo(cam_info);
@@ -306,104 +305,116 @@ void draw3dPoints(ARCloud::Ptr cloud, string frame, int color, int id, double ra
     }
   }
 
-  int PlaneFitPoseImprovement(int id, const ARCloud &corners_3D, ARCloud::Ptr selected_points, const ARCloud &cloud, Pose &p)
+  int PlaneFitPoseImprovement(int id, const ARCloud& corners_3D,
+                            ARCloud::Ptr selected_points, const ARCloud& cloud,
+                            Pose& p)
+{
+  ata::PlaneFitResult res = ata::fitPlane(selected_points);
+  gm::msg::PoseStamped pose;
+  pose.header.stamp = pcl_conversions::fromPCL(cloud.header).stamp;
+  pose.header.frame_id = cloud.header.frame_id;
+  pose.pose.position = ata::centroid(*res.inliers);
+
+  draw3dPoints(selected_points, cloud.header.frame_id, 1, id, 0.005);
+
+  // Get 2 points that point forward in marker x direction
+  int i1, i2;
+  if (isnan(corners_3D[0].x) || isnan(corners_3D[0].y) ||
+      isnan(corners_3D[0].z) || isnan(corners_3D[3].x) ||
+      isnan(corners_3D[3].y) || isnan(corners_3D[3].z))
   {
-    ata::PlaneFitResult res = ata::fitPlane(selected_points);
-    gm::msg::PoseStamped pose;
-    pose.header.stamp = pcl_conversions::fromPCL(cloud.header).stamp;
-    pose.header.frame_id = cloud.header.frame_id;
-    pose.pose.position = ata::centroid(*res.inliers);
-
-    draw3dPoints(selected_points, cloud.header.frame_id, 1, id, 0.005);
-
-    //Get 2 points that point forward in marker x direction
-    int i1,i2;
-    if(isnan(corners_3D[0].x) || isnan(corners_3D[0].y) || isnan(corners_3D[0].z) ||
-      isnan(corners_3D[3].x) || isnan(corners_3D[3].y) || isnan(corners_3D[3].z))
+    if (isnan(corners_3D[1].x) || isnan(corners_3D[1].y) ||
+        isnan(corners_3D[1].z) || isnan(corners_3D[2].x) ||
+        isnan(corners_3D[2].y) || isnan(corners_3D[2].z))
     {
-        
-      if(isnan(corners_3D[1].x) || isnan(corners_3D[1].y) || isnan(corners_3D[1].z) ||
-      isnan(corners_3D[2].x) || isnan(corners_3D[2].y) || isnan(corners_3D[2].z))
-      {
-        return -1;
-      }
-      else
-      {
-        i1 = 1;
-        i2 = 2;
-      }
+      return -1;
     }
     else
     {
-      i1 = 0;
-      i2 = 3;
+      i1 = 1;
+      i2 = 2;
     }
-
-    //Get 2 points the point forward in marker y direction
-    int i3,i4;
-    if(isnan(corners_3D[0].x) || isnan(corners_3D[0].y) || isnan(corners_3D[0].z) ||
-        isnan(corners_3D[1].x) || isnan(corners_3D[1].y) || isnan(corners_3D[1].z))
-    {
-        if(isnan(corners_3D[3].x) || isnan(corners_3D[3].y) || isnan(corners_3D[3].z) ||
-          isnan(corners_3D[2].x) || isnan(corners_3D[2].y) || isnan(corners_3D[2].z))
-        {
-          return -1;
-        }
-        else
-        {
-          i3 = 2;
-          i4 = 3;
-        }
-    }
-    else
-    {
-      i3 = 1;
-      i4 = 0;
-    }
-
-    ARCloud::Ptr orient_points(new ARCloud());
-    orient_points->points.push_back(corners_3D[i1]);
-    draw3dPoints(orient_points, cloud.header.frame_id, 3, id+1000, 0.008);
-
-    orient_points->clear();
-    orient_points->points.push_back(corners_3D[i2]);
-    draw3dPoints(orient_points, cloud.header.frame_id, 2, id+2000, 0.008);
-
-    int succ;
-    succ = ata::extractOrientation(res.coeffs, corners_3D[i1], corners_3D[i2], corners_3D[i3], corners_3D[i4], pose.pose.orientation);
-    if(succ < 0) return -1;
-
-    tf2::Matrix3x3 mat;
-    succ = ata::extractFrame(res.coeffs, corners_3D[i1], corners_3D[i2], corners_3D[i3], corners_3D[i4], mat);
-    if(succ < 0) return -1;
-
-    drawArrow(pose.pose.position, mat, cloud.header.frame_id, 1, id);
-
-    p.translation[0] = pose.pose.position.x * 100.0;
-    p.translation[1] = pose.pose.position.y * 100.0;
-    p.translation[2] = pose.pose.position.z * 100.0;
-    p.quaternion[1] = pose.pose.orientation.x;
-    p.quaternion[2] = pose.pose.orientation.y;
-    p.quaternion[3] = pose.pose.orientation.z;
-    p.quaternion[0] = pose.pose.orientation.w;
-
-    return 0;
   }
+  else
+  {
+    i1 = 0;
+    i2 = 3;
+  }
+
+  // Get 2 points the point forward in marker y direction
+  int i3, i4;
+  if (isnan(corners_3D[0].x) || isnan(corners_3D[0].y) ||
+      isnan(corners_3D[0].z) || isnan(corners_3D[1].x) ||
+      isnan(corners_3D[1].y) || isnan(corners_3D[1].z))
+  {
+    if (isnan(corners_3D[3].x) || isnan(corners_3D[3].y) ||
+        isnan(corners_3D[3].z) || isnan(corners_3D[2].x) ||
+        isnan(corners_3D[2].y) || isnan(corners_3D[2].z))
+    {
+      return -1;
+    }
+    else
+    {
+      i3 = 2;
+      i4 = 3;
+    }
+  }
+  else
+  {
+    i3 = 1;
+    i4 = 0;
+  }
+
+  ARCloud::Ptr orient_points(new ARCloud());
+  orient_points->points.push_back(corners_3D[i1]);
+  draw3dPoints(orient_points, cloud.header.frame_id, 3, id + 1000, 0.008);
+
+  orient_points->clear();
+  orient_points->points.push_back(corners_3D[i2]);
+  draw3dPoints(orient_points, cloud.header.frame_id, 2, id + 2000, 0.008);
+
+  int succ;
+  succ = ata::extractOrientation(res.coeffs, corners_3D[i1], corners_3D[i2],
+                                 corners_3D[i3], corners_3D[i4],
+                                 pose.pose.orientation);
+  if (succ < 0)
+    return -1;
+
+  tf2::Matrix3x3 mat;
+  succ = ata::extractFrame(res.coeffs, corners_3D[i1], corners_3D[i2],
+                           corners_3D[i3], corners_3D[i4], mat);
+  if (succ < 0)
+    return -1;
+
+  drawArrow(pose.pose.position, mat, cloud.header.frame_id, 1, id);
+
+  p.translation[0] = pose.pose.position.x * 100.0;
+  p.translation[1] = pose.pose.position.y * 100.0;
+  p.translation[2] = pose.pose.position.z * 100.0;
+  p.quaternion[1] = pose.pose.orientation.x;
+  p.quaternion[2] = pose.pose.orientation.y;
+  p.quaternion[3] = pose.pose.orientation.z;
+  p.quaternion[0] = pose.pose.orientation.w;
+
+  return 0;
+}
 
   void GetMarkerPoses(cv::Mat * image, ARCloud &cloud) 
   {
 
     //Detect and track the markers
-    if (marker_detector.Detect(image, cam, true, false, max_new_marker_error, max_track_error, CVSEQ, true))
+    if (marker_detector.Detect(*image, cam, true, false, max_new_marker_error, max_track_error, CVSEQ, true))
     {
     
-    std::cout << "--------------------------" << std::endl;
+    RCLCPP_INFO(this->get_logger(), "-----------------------------------");
     for (size_t i=0; i<marker_detector.markers->size(); i++)
     {
         vector<cv::Point, Eigen::aligned_allocator<cv::Point> > pixels;
         Marker *m = &((*marker_detector.markers)[i]);
         int id = m->GetId();
-        std::cout<< "******* ID: " << id << std::endl;
+
+        RCLCPP_INFO(this->get_logger(), "******* ID: %d",id);
+
 
         int resol = m->GetRes();
         int ori = m->ros_orientation;
