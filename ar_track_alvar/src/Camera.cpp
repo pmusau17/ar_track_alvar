@@ -141,44 +141,6 @@ Camera::Camera()
   getCamInfo_ = false;
 }
 
-// Camera::Camera(ros::NodeHandle& n, std::string cam_info_topic) : n_(n)
-// {
-//   calib_K = cv::Mat(3, 3, CV_64F, calib_K_data);
-//   calib_D = cv::Mat(4, 1, CV_64F, calib_D_data);
-//   memset(calib_K_data, 0, sizeof(double) * 3 * 3);
-//   memset(calib_D_data, 0, sizeof(double) * 4);
-//   calib_K_data[0][0] = 550;  // Just some focal length by default
-//   calib_K_data[1][1] = 550;  // Just some focal length by default
-//   calib_K_data[0][2] = 320;
-//   calib_K_data[1][2] = 240;
-//   calib_K_data[2][2] = 1;
-//   calib_x_res = 640;
-//   calib_y_res = 480;
-//   x_res = 640;
-//   y_res = 480;
-//   cameraInfoTopic_ = cam_info_topic;
-//   ROS_INFO("Subscribing to info topic");
-//   sub_ = n_.subscribe(cameraInfoTopic_, 1, &Camera::camInfoCallback, this);
-//   getCamInfo_ = false;
-// }
-
-//
-// Camera::Camera(int w, int h) {
-//	calib_K = cvMat(3, 3, CV_64F, calib_K_data);
-//	calib_D = cvMat(4, 1, CV_64F, calib_D_data);
-//	memset(calib_K_data,0,sizeof(double)*3*3);
-//	memset(calib_D_data,0,sizeof(double)*4);
-//	calib_K_data[0][0] = w/2;
-//	calib_K_data[1][1] = w/2;
-//	calib_K_data[0][2] = w/2;
-//	calib_K_data[1][2] = h/2;
-//	calib_K_data[2][2] = 1;
-//	calib_x_res = w;
-//	calib_y_res = h;
-//	x_res = w;
-//	y_res = h;
-//}
-
 void Camera::SetSimpleCalib(int _x_res, int _y_res, double f_fac)
 {
   memset(calib_K_data, 0, sizeof(double) * 3 * 3);
@@ -252,29 +214,27 @@ bool Camera::LoadCalibOpenCV(const char* calibfile)
 
 void Camera::SetCameraInfo(const sensor_msgs::msg::CameraInfo::SharedPtr cam_info)
 {
-  //cam_info_ = cam_info;
-
-  calib_x_res = cam_info_.width;
-  calib_y_res = cam_info_.height;
+  calib_x_res = cam_info->width;
+  calib_y_res = cam_info->height;
   x_res = calib_x_res;
   y_res = calib_y_res;
 
-  calib_K.at<double>(0, 0) = cam_info_.k[0];
-  calib_K.at<double>(0, 1) = cam_info_.k[1];
-  calib_K.at<double>(0, 2) = cam_info_.k[2];
-  calib_K.at<double>(1, 0) = cam_info_.k[3];
-  calib_K.at<double>(1, 1) = cam_info_.k[4];
-  calib_K.at<double>(1, 2) = cam_info_.k[5];
-  calib_K.at<double>(2, 0) = cam_info_.k[6];
-  calib_K.at<double>(2, 1) = cam_info_.k[7];
-  calib_K.at<double>(2, 2) = cam_info_.k[8];
+  calib_K.at<double>(0, 0) = cam_info->k[0];
+  calib_K.at<double>(0, 1) = cam_info->k[1];
+  calib_K.at<double>(0, 2) = cam_info->k[2];
+  calib_K.at<double>(1, 0) = cam_info->k[3];
+  calib_K.at<double>(1, 1) = cam_info->k[4];
+  calib_K.at<double>(1, 2) = cam_info->k[5];
+  calib_K.at<double>(2, 0) = cam_info->k[6];
+  calib_K.at<double>(2, 1) = cam_info->k[7];
+  calib_K.at<double>(2, 2) = cam_info->k[8];
 
-  if (cam_info_.d.size() >= 4)
+  if (cam_info->d.size() >= 4)
   {
-    calib_D.at<double>(0, 0) = cam_info_.d[0];
-    calib_D.at<double>(1, 0) = cam_info_.d[1];
-    calib_D.at<double>(2, 0) = cam_info_.d[2];
-    calib_D.at<double>(3, 0) = cam_info_.d[3];
+    calib_D.at<double>(0, 0) = cam_info->d[0];
+    calib_D.at<double>(1, 0) = cam_info->d[1];
+    calib_D.at<double>(2, 0) = cam_info->d[2];
+    calib_D.at<double>(3, 0) = cam_info->d[3];
   }
   else
   {
@@ -694,7 +654,7 @@ void Camera::CalcExteriorOrientation(const vector<cv::Point3d>& pw,
   }
 
   tra.setTo(cv::Scalar::all(0));
-  rodriques.setTo(cv::Scalar::all(0));
+  rodriques.setTo(cv::Scalar::all(0));  
   cv::solvePnP(pw, pi2, calib_K, cv::Mat(), rodriques, tra, false,
                cv::SOLVEPNP_ITERATIVE);
 }

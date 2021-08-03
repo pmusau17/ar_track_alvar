@@ -93,12 +93,10 @@ int MarkerDetectorImpl::Detect(cv::Mat& image, Camera* cam, bool track,
                                LabelingMethod labeling_method, bool update_pose)
 {
   double error = -1;
- 
+
   // Swap marker tables
   _swap_marker_tables();
   _markers_clear();
-
-  
 
   switch (labeling_method)
   {
@@ -122,18 +120,23 @@ int MarkerDetectorImpl::Detect(cv::Mat& image, Camera* cam, bool track,
   {
     for (size_t ii = 0; ii < _track_markers_size(); ii++)
     {
-
       Marker* mn = _track_markers_at(ii);
       if (mn->GetError(Marker::DECODE_ERROR | Marker::MARGIN_ERROR) > 0)
-        continue;  // We track only perfectly decoded markers
+      {
+          continue;  // We track only perfectly decoded markers
+      }
+        
       int track_i = -1;
       int track_orientation = 0;
       double track_error = 1e200;
       for (unsigned i = 0; i < blob_corners.size() /*blobs_ret.size()*/; ++i)
       {
         if (blob_corners[i].empty())
+        {
           continue;
+        }
         mn->CompareCorners(blob_corners[i], &orientation, &error);
+       
         if (error < track_error)
         {
           track_i = i;
@@ -159,11 +162,9 @@ int MarkerDetectorImpl::Detect(cv::Mat& image, Camera* cam, bool track,
     }
   }
 
-   
   // Now we go through the rest of the blobs -- in case there are new markers...
   for (size_t i = 0; i < blob_corners.size(); ++i)
   {
-
     if (blob_corners[i].empty())
     {
       continue;
@@ -185,14 +186,15 @@ int MarkerDetectorImpl::Detect(cv::Mat& image, Camera* cam, bool track,
       _markers_push_back(mn);
 
       if (visualize)
+      {
         mn->Visualize(image, cam, CV_RGB(255, 0, 0));
+      }
     }
+
     delete mn;
   }
 
-  int val = (int)_markers_size();
-  
-  return val;
+  return (int)_markers_size();
 }
 
 int MarkerDetectorImpl::DetectAdditional(cv::Mat& image, Camera* cam,

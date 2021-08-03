@@ -42,12 +42,16 @@
 #include <cv_bridge/cv_bridge.h>
 #include <ar_track_alvar_msgs/msg/alvar_marker.hpp>
 #include <ar_track_alvar_msgs/msg/alvar_markers.hpp>
+#include "tf2/convert.h"
+#include "tf2_geometry_msgs/tf2_geometry_msgs.h"
+#include "tf2/LinearMath/Transform.h"
 #include "tf2_ros/buffer.h"
-#include "tf2_ros/create_timer_ros.h"
+#include "tf2_ros/message_filter.h"
+#include "tf2_ros/transform_broadcaster.h"
 #include "tf2_ros/transform_listener.h"
-#include <tf2_ros/transform_broadcaster.h>
-#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
+#include "tf2_ros/create_timer_ros.h"
 #include <sensor_msgs/image_encodings.hpp>
+#include <image_transport/image_transport.hpp>
 
 using namespace alvar;
 using namespace std;
@@ -67,18 +71,25 @@ class IndividualMarkersNoKinect : public rclcpp::Node
 
     rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr  enable_sub_;
     rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr  cam_sub_;
+    tf2::TimePoint prev_stamp_;
+
+    // image_transport::Subscriber cam_sub_;
+
     rclcpp::Publisher<ar_track_alvar_msgs::msg::AlvarMarkers>::SharedPtr arMarkerPub_;
     rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr rvizMarkerPub_;
     rclcpp::Subscription<sensor_msgs::msg::CameraInfo>::SharedPtr info_sub_;
 
-    tf2_ros::TransformBroadcaster tf_broadcaster_;
-    tf2_ros::TransformListener tf_listener_;
-    tf2_ros::Buffer tf2_;
+
+    std::shared_ptr<tf2_ros::Buffer> tf2_;
+    std::shared_ptr<tf2_ros::TransformListener> tf_listener_;
+    std::shared_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
+
+
     MarkerDetector<MarkerData> marker_detector;
 
     bool enableSwitched = false;
     bool enabled = true;
-    double max_frequency;
+    double max_frequency=8.0;
     double marker_size;
     double max_new_marker_error;
     double max_track_error;
@@ -91,8 +102,14 @@ class IndividualMarkersNoKinect : public rclcpp::Node
 
     
   public:
-    IndividualMarkersNoKinect(int argc, char* argv[]) : Node("marker_detect"), tf2_(this->get_clock()), tf_listener_(tf2_), tf_broadcaster_(this)//, it_(this)
+    IndividualMarkersNoKinect(int argc, char* argv[]) : Node("marker_detect") //, tf2_(this->get_clock()), tf_listener_(tf2_), tf_broadcaster_(this)//, it_(this)
     {
+
+        rclcpp::Clock::SharedPtr clock = this->get_clock();
+        tf2_ = std::make_shared<tf2_ros::Buffer>(clock);
+        tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf2_);
+        tf_broadcaster_ = std::make_shared<tf2_ros::TransformBroadcaster>(*this);
+
         if(argc > 1) 
         {
           RCLCPP_WARN(this->get_logger(), "Command line arguments are deprecated. Consider using ROS parameters and remappings.");
@@ -114,6 +131,8 @@ class IndividualMarkersNoKinect : public rclcpp::Node
           cam_image_topic = argv[4];
           cam_info_topic = argv[5];
           output_frame = argv[6];
+
+          RCLCPP_INFO(this->get_logger(),"marker_size: %f, max_new_marker_error: %f,  max_track_error: %f",marker_size,max_new_marker_error,max_track_error);
 
           if (argc > 7)
           {
@@ -166,6 +185,8 @@ class IndividualMarkersNoKinect : public rclcpp::Node
 
       marker_detector.SetMarkerSize(marker_size, marker_resolution, marker_margin);
 	    cam = new Camera();
+      
+      prev_stamp_ = tf2::get_now();
 
       //Give tf a chance to catch up before the camera callback starts asking for transforms
       // It will also reconfigure parameters for the first time, setting the default values
@@ -181,8 +202,6 @@ class IndividualMarkersNoKinect : public rclcpp::Node
 
 
       enable_sub_ = this->create_subscription<std_msgs::msg::Bool>("enable_detection", 1, std::bind(&IndividualMarkersNoKinect::enableCallback, this, std::placeholders::_1));
-
-
       RCLCPP_INFO(this->get_logger(),"Subscribing to info topic");
 	    info_sub_ = this->create_subscription<sensor_msgs::msg::CameraInfo>(cam_info_topic, 1, std::bind(&IndividualMarkersNoKinect::InfoCallback, this, std::placeholders::_1));
 
@@ -200,13 +219,16 @@ class IndividualMarkersNoKinect : public rclcpp::Node
       {
           cam->SetCameraInfo(cam_info);
           cam->getCamInfo_ = true;
-          //sub_.reset();
+          // info_sub_.reset();
       }
     }
 
 
     void getCapCallback (const sensor_msgs::msg::Image::SharedPtr image_msg)
+    //void getCapCallback(const sensor_msgs::msg::Image::ConstSharedPtr& image_msg)
     {
+        std::string tf_error;
+        
         //If we've already gotten the cam info, then go ahead
         if(cam->getCamInfo_){
 		    try
@@ -214,11 +236,12 @@ class IndividualMarkersNoKinect : public rclcpp::Node
 		      geometry_msgs::msg::TransformStamped CamToOutput; 
     			try
           {
-				    tf2_.canTransform(output_frame, image_msg->header.frame_id, image_msg->header.stamp);
-					  CamToOutput = tf2_.lookupTransform(output_frame, image_msg->header.frame_id, image_msg->header.stamp);
+            tf2::TimePoint tf2_time = tf2_ros::fromMsg(image_msg->header.stamp);
+            CamToOutput = tf2_->lookupTransform(output_frame, image_msg->header.frame_id,tf2_time,tf2_time - prev_stamp_);
    				}
     			catch (tf2::TransformException ex){
       				RCLCPP_ERROR(this->get_logger(), "%s",ex.what());
+              tf_error.clear();
     			}
 
           //Convert the image
@@ -236,14 +259,10 @@ class IndividualMarkersNoKinect : public rclcpp::Node
                              true);
           arPoseMarkers_.markers.clear();
 
-
-          //marker_detector.Detect(ipl_image, cam, true, true, max_new_marker_error, max_track_error, CVSEQ, true);
-          arPoseMarkers_.markers.clear ();
-
-			    for (size_t i=0; i<marker_detector.markers->size(); i++)
-			    {
+          for (size_t i = 0; i < marker_detector.markers->size(); i++)
+          {   
 				    // Get the pose relative to the camera
-             int id = (*(marker_detector.markers))[i].GetId();
+            int id = (*(marker_detector.markers))[i].GetId();
             Pose p = (*(marker_detector.markers))[i].pose;
             double px = p.translation[0] / 100.0;
             double py = p.translation[1] / 100.0;
@@ -255,7 +274,6 @@ class IndividualMarkersNoKinect : public rclcpp::Node
             double qy = quat.at<double>(2,0); //p.quaternion[2];
             double qz = quat.at<double>(3,0); //p.quaternion[3];
             double qw = quat.at<double>(0,0); //p.quaternion[0];
-
             tf2::Quaternion rotation (qx,qy,qz,qw);
             tf2::Vector3 origin (px,py,pz);
             tf2::Transform t (rotation, origin);
@@ -296,84 +314,84 @@ class IndividualMarkersNoKinect : public rclcpp::Node
 
             camToMarker.transform.translation = trans;
             camToMarker.transform.rotation = rot;
-            tf_broadcaster_.sendTransform(camToMarker);
+            tf_broadcaster_->sendTransform(camToMarker);
     		
-				//Create the rviz visualization messages
-        rvizMarker_.pose.position.x = markerPose.getOrigin().getX();
-        rvizMarker_.pose.position.y = markerPose.getOrigin().getY();
-        rvizMarker_.pose.position.z = markerPose.getOrigin().getZ();
-        rvizMarker_.pose.orientation.x = markerPose.getRotation().getX();
-        rvizMarker_.pose.orientation.y = markerPose.getRotation().getY();
-        rvizMarker_.pose.orientation.z = markerPose.getRotation().getZ();
-        rvizMarker_.pose.orientation.w = markerPose.getRotation().getW();
-				rvizMarker_.header.frame_id = image_msg->header.frame_id;
-				rvizMarker_.header.stamp = image_msg->header.stamp;
-				rvizMarker_.id = id;
+            //Create the rviz visualization messages
+            rvizMarker_.pose.position.x = markerPose.getOrigin().getX();
+            rvizMarker_.pose.position.y = markerPose.getOrigin().getY();
+            rvizMarker_.pose.position.z = markerPose.getOrigin().getZ();
+            rvizMarker_.pose.orientation.x = markerPose.getRotation().getX();
+            rvizMarker_.pose.orientation.y = markerPose.getRotation().getY();
+            rvizMarker_.pose.orientation.z = markerPose.getRotation().getZ();
+            rvizMarker_.pose.orientation.w = markerPose.getRotation().getW();
+            rvizMarker_.header.frame_id = image_msg->header.frame_id;
+            rvizMarker_.header.stamp = image_msg->header.stamp;
+            rvizMarker_.id = id;
 
-				rvizMarker_.scale.x = 1.0 * marker_size/100.0;
-				rvizMarker_.scale.y = 1.0 * marker_size/100.0;
-				rvizMarker_.scale.z = 0.2 * marker_size/100.0;
-				rvizMarker_.ns = "basic_shapes";
-				rvizMarker_.type = visualization_msgs::msg::Marker::CUBE;
-				rvizMarker_.action = visualization_msgs::msg::Marker::ADD;
-				switch (id)
-				{
-				  case 0:
-				    rvizMarker_.color.r = 0.0f;
-				    rvizMarker_.color.g = 0.0f;
-				    rvizMarker_.color.b = 1.0f;
-				    rvizMarker_.color.a = 1.0;
-				    break;
-				  case 1:
-				    rvizMarker_.color.r = 1.0f;
-				    rvizMarker_.color.g = 0.0f;
-				    rvizMarker_.color.b = 0.0f;
-				    rvizMarker_.color.a = 1.0;
-				    break;
-				  case 2:
-				    rvizMarker_.color.r = 0.0f;
-				    rvizMarker_.color.g = 1.0f;
-				    rvizMarker_.color.b = 0.0f;
-				    rvizMarker_.color.a = 1.0;
-				    break;
-				  case 3:
-				    rvizMarker_.color.r = 0.0f;
-				    rvizMarker_.color.g = 0.5f;
-				    rvizMarker_.color.b = 0.5f;
-				    rvizMarker_.color.a = 1.0;
-				    break;
-				  case 4:
-				    rvizMarker_.color.r = 0.5f;
-				    rvizMarker_.color.g = 0.5f;
-				    rvizMarker_.color.b = 0.0;
-				    rvizMarker_.color.a = 1.0;
-				    break;
-				  default:
-				    rvizMarker_.color.r = 0.5f;
-				    rvizMarker_.color.g = 0.0f;
-				    rvizMarker_.color.b = 0.5f;
-				    rvizMarker_.color.a = 1.0;
-				    break;
-				}
-				rvizMarker_.lifetime = rclcpp::Duration (1.0);
-				rvizMarkerPub_->publish (rvizMarker_);
+            rvizMarker_.scale.x = 1.0 * marker_size/100.0;
+            rvizMarker_.scale.y = 1.0 * marker_size/100.0;
+            rvizMarker_.scale.z = 0.2 * marker_size/100.0;
+            rvizMarker_.ns = "basic_shapes";
+            rvizMarker_.type = visualization_msgs::msg::Marker::CUBE;
+            rvizMarker_.action = visualization_msgs::msg::Marker::ADD;
+            switch (id)
+            {
+              case 0:
+                rvizMarker_.color.r = 0.0f;
+                rvizMarker_.color.g = 0.0f;
+                rvizMarker_.color.b = 1.0f;
+                rvizMarker_.color.a = 1.0;
+                break;
+              case 1:
+                rvizMarker_.color.r = 1.0f;
+                rvizMarker_.color.g = 0.0f;
+                rvizMarker_.color.b = 0.0f;
+                rvizMarker_.color.a = 1.0;
+                break;
+              case 2:
+                rvizMarker_.color.r = 0.0f;
+                rvizMarker_.color.g = 1.0f;
+                rvizMarker_.color.b = 0.0f;
+                rvizMarker_.color.a = 1.0;
+                break;
+              case 3:
+                rvizMarker_.color.r = 0.0f;
+                rvizMarker_.color.g = 0.5f;
+                rvizMarker_.color.b = 0.5f;
+                rvizMarker_.color.a = 1.0;
+                break;
+              case 4:
+                rvizMarker_.color.r = 0.5f;
+                rvizMarker_.color.g = 0.5f;
+                rvizMarker_.color.b = 0.0;
+                rvizMarker_.color.a = 1.0;
+                break;
+              default:
+                rvizMarker_.color.r = 0.5f;
+                rvizMarker_.color.g = 0.0f;
+                rvizMarker_.color.b = 0.5f;
+                rvizMarker_.color.a = 1.0;
+                break;
+            }
+            rvizMarker_.lifetime = rclcpp::Duration (1.0);
+            rvizMarkerPub_->publish (rvizMarker_);
 
-        //Create the pose marker messages
-				ar_track_alvar_msgs::msg::AlvarMarker ar_pose_marker;
-				//Get the pose of the tag in the camera frame, then the output frame (usually torso)
-        tf2::doTransform(ar_pose_marker.pose, ar_pose_marker.pose,CamToOutput);
-
-				
-      	ar_pose_marker.header.frame_id = output_frame;
-			  ar_pose_marker.header.stamp = image_msg->header.stamp;
-			  ar_pose_marker.id = id;
-			  arPoseMarkers_.markers.push_back (ar_pose_marker);
-			}
-			arMarkerPub_->publish (arPoseMarkers_);
-		}
-        catch (cv_bridge::Exception& e){
+            //Create the pose marker messages
+            ar_track_alvar_msgs::msg::AlvarMarker ar_pose_marker;
+            //Get the pose of the tag in the camera frame, then the output frame (usually torso)
+            tf2::doTransform(ar_pose_marker.pose, ar_pose_marker.pose,CamToOutput);
+            ar_pose_marker.header.frame_id = output_frame;
+            ar_pose_marker.header.stamp = image_msg->header.stamp;
+            ar_pose_marker.id = id;
+            arPoseMarkers_.markers.push_back (ar_pose_marker);
+			    }
+			    arMarkerPub_->publish (arPoseMarkers_);
+	  	  }
+        catch (cv_bridge::Exception& e)
+        {
       		RCLCPP_ERROR(this->get_logger(),"Could not convert from '%s' to 'rgb8'.", image_msg->encoding.c_str ());
-    	}
+    	  }
+        prev_stamp_ = tf2_ros::fromMsg(image_msg->header.stamp);
 	  }
   }
 

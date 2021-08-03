@@ -4,6 +4,7 @@ import os
 import sys
 import time
 import unittest
+import numpy as np
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
@@ -44,7 +45,7 @@ def generate_test_description():
 
         Node(
             package='ar_track_alvar',
-            executable='individualMarkers',#NoKinect',
+            executable='individualMarkersNoKinect',
             name='individual_markers',
             remappings=[
                 ("camera_image", cam_image_topic),
@@ -79,11 +80,12 @@ class TestArTrack(unittest.TestCase):
         #     lambda msg: msgs_received.append(msg),
         #     1
         # )
+        
+
+        transforms =[]
         start_time = time.time()
         while  rclpy.ok() and (time.time() - start_time) < 120:
             rclpy.spin_once(self.node, timeout_sec=0.1)
-
-            now = self.node.get_clock().now()
 
             dur = Duration()
             dur.sec = 40
@@ -97,19 +99,29 @@ class TestArTrack(unittest.TestCase):
             for i in range (0, len(tf_expected)):
                 try:
                     target_frame = 'ar_marker_{}'.format(i)
-                    (trans, rot) = self.tfBuffer.lookup_transform('camera', target_frame, now, dur)
-                    break
+                    time_stamp = rclpy.time.Time(seconds=0, nanoseconds=0).to_msg()
+                    obj  = self.tfBuffer.lookup_transform('camera', target_frame,time=time_stamp)
+                    trans = obj.transform.translation
+                    rot = obj.transform.rotation
+                    
+                    item = [[trans.x,trans.y,trans.z],[rot.x,rot.y,rot.z,rot.w]]
+                    transforms.append(item)
+                    
                 except (LookupException, ConnectivityException, ExtrapolationException) as e:
-                        self.node.get_logger().error(str(e) + ' target_frame={}'.format(target_frame))
                         continue
+            if(len(transforms)>=4):
+                break
+        print(transforms[0])
+        print(tf_expected[0])
 
-                # Compare each translation element (x, y, z) 
-                for v_ret, v_expected in zip(trans, tf_expected[i][0]):
-                    # Given that sigfig ignores the leading zero, we only compare the first sigfig.
-                    numpy.testing.assert_approx_equal(
-                        v_ret, v_expected, significant=1)
-                # Compare each orientation element (x, y, z, w) 
-                for v_ret, v_expected in zip(rot, tf_expected[i][1]):
-                    numpy.testing.assert_approx_equal(
-                        v_ret, v_expected, significant=1)
+        # there are four markers in the test bag
+        for i in range(4):
+            
+            trans = np.abs(np.asarray(transforms[i][0]) - np.asarray(tf_expected[i][0]))
+            assert np.max(trans) < 0.1
+            rot = np.abs(  np.asarray(transforms[i][1]) - np.asarray(tf_expected[i][1]))
+            assert np.max(trans) < 0.1
+
+
+
 

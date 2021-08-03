@@ -425,12 +425,16 @@ void Marker::UpdatePose(vector<PointDouble>& _marker_corners_img, Camera* cam,
 
   // Calculate exterior orientation
   if (orientation > 0)
+  {
     std::rotate(marker_corners_img.begin(),
                 marker_corners_img.begin() + orientation,
                 marker_corners_img.end());
+  }
 
   if (update_pose)
+  {
     cam->CalcExteriorOrientation(marker_corners, marker_corners_img, &pose);
+  }
 }
 bool Marker::DecodeContent(int* orientation)
 {
@@ -511,7 +515,9 @@ void Marker::SetMarkerSize(double _edge_length, int _res, double _margin)
 
   // Rest can be done only if we have existing resolution
   if (res <= 0)
+  {
     return;
+  }
 
   // marker_points
   marker_points.clear();
@@ -852,42 +858,25 @@ void MarkerData::DecodeOrientation(int* error, int* total, int* orientation)
     {
       (*total)++;
       if ((int)marker_content.at<uchar>(j, i) != 0)
-      {
         errors[0]++;
-      }
-        
       if ((int)marker_content.at<uchar>(i, j) != 0)
-      {
         errors[1]++;
-      }
       if ((int)marker_content.at<uchar>(j, i) != 255)
-      {
         errors[2]++;
-      }
       if ((int)marker_content.at<uchar>(i, j) != 255)
-      {
         errors[3]++;
-      }
     }
     else if (j > (res / 2))
     {
       (*total)++;
       if ((int)marker_content.at<uchar>(j, i) != 255)
-      {
         errors[0]++;
-      }
       if ((int)marker_content.at<uchar>(i, j) != 255)
-      {
         errors[1]++;
-      }
       if ((int)marker_content.at<uchar>(j, i) != 0)
-      {
         errors[2]++;
-      }
       if ((int)marker_content.at<uchar>(i, j) != 0)
-      {
         errors[3]++;
-      }
     }
   }
   *orientation = min_element(errors.begin(), errors.end()) - errors.begin();
@@ -1203,6 +1192,7 @@ bool MarkerData::DecodeContent(int* orientation)
 {
   // bool decode(vector<int>& colors, int *orientation, double *error) {
   *orientation = 0;
+
   BitsetExt bs;
   int erroneous = 0;
   int total = 0;
