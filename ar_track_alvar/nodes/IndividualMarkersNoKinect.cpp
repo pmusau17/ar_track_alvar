@@ -110,7 +110,7 @@ class IndividualMarkersNoKinect : public rclcpp::Node
         tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf2_);
         tf_broadcaster_ = std::make_shared<tf2_ros::TransformBroadcaster>(*this);
 
-        if(argc > 1) 
+        if(argc > 2) 
         {
           RCLCPP_WARN(this->get_logger(), "Command line arguments are deprecated. Consider using ROS parameters and remappings.");
 

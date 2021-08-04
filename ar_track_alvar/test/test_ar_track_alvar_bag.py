@@ -15,7 +15,7 @@ import rclpy
 from sensor_msgs.msg import Image
 
 # Test Parameters
-bag_name = os.path.join(get_package_share_directory('ar_track_alvar'),'ar_track_alvar_4markers_tork_2017-02-08-11-21-14.bag')
+bag_name = os.path.join(os.path.dirname(__file__),'resources','alvar-marker-pose-test.bag')
 
 @pytest.mark.rostest
 def generate_test_description():
@@ -24,7 +24,7 @@ def generate_test_description():
         
         # Launch Bag
         launch.actions.ExecuteProcess(
-            cmd=['ros2', 'bag', 'play', '-s',"rosbag_v2",bag_name],
+            cmd=['ros2', 'bag', 'play','--loop', '-s',"rosbag_v2",bag_name],
             output='screen'
         ),
         launch_testing.actions.ReadyToTest(),

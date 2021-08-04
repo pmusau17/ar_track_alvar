@@ -1,6 +1,7 @@
 from launch import LaunchDescription
 from launch_ros.actions import Node
 from ament_index_python.packages import get_package_share_directory
+import os 
 
 # command line arguments 
 marker_size=4.4
@@ -16,7 +17,8 @@ def generate_launch_description():
     return LaunchDescription([
         Node(
             package='ar_track_alvar', 
-            node_executable='findMarkerBundlesNoKinect', 
+            name='findMarkerBundlesNoKinect'
+            executable='findMarkerBundlesNoKinect', 
             output='screen',
             remappings=[
                 ("camera_image", cam_image_topic),

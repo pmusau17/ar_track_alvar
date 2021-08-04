@@ -156,14 +156,7 @@ if(BUILD_TESTING)
   
   find_package(ament_lint_auto REQUIRED)
   ament_lint_auto_find_test_dependencies()
-  find_package(ament_download)
-
-  ament_download(http://download.ros.org/data/ar_track_alvar/ar_track_alvar_4markers_tork_2017-02-08-11-21-14.bag
-    FILENAME ar_track_alvar_4markers_tork_2017-02-08-11-21-14.bag
-    DESTINATION ${CMAKE_INSTALL_PREFIX}/share/${PROJECT_NAME}
-    MD5 627aa0316bbfe4334e06023d7c2b4087
-   )
-
+  
   set(_PYTHON_EXECUTABLE "${PYTHON_EXECUTABLE}")
   if(WIN32 AND CMAKE_BUILD_TYPE STREQUAL "Debug")
     set(PYTHON_EXECUTABLE "${PYTHON_EXECUTABLE_DEBUG}")
@@ -184,31 +177,11 @@ if(BUILD_TESTING)
     PYTHON_EXECUTABLE "${PYTHON_EXECUTABLE}"
   )
 
+  # Test Launch Files
+  add_launch_test("test/test_launch_files.py"
+    PYTHON_EXECUTABLE "${PYTHON_EXECUTABLE}"
+  )
+
 endif()
-
-
-
-# if (BUILD_TESTING)
-#   find_package(catkin REQUIRED COMPONENTS roslaunch rostest)
-#   add_rostest(test/marker_arg_config-basic.test DEPENDENCIES ${PROJECT_NAME}_4markers_tork.bag)
-#   add_rostest(test/marker_arg_config-full.test DEPENDENCIES ${PROJECT_NAME}_4markers_tork.bag)
-#   add_rostest(test/marker_param_config-basic.test DEPENDENCIES ${PROJECT_NAME}_4markers_tork.bag)
-#   add_rostest(test/marker_param_config-full.test DEPENDENCIES ${PROJECT_NAME}_4markers_tork.bag)
-  
-#   catkin_download_test_data(
-#     ${PROJECT_NAME}_4markers_tork.bag
-#     http://download.ros.org/data/ar_track_alvar/ar_track_alvar_4markers_tork_2017-02-08-11-21-14.bag
-#     # Workaround the issue http://answers.ros.org/question/253787/accessing-data-downloaded-via-catkin_download_test_data/
-#     # by downloading into source folder.
-#     #DESTINATION ${CATKIN_DEVEL_PREFIX}/${CATKIN_PACKAGE_SHARE_DESTINATION}/test
-#     DESTINATION ${CATKIN_DEVEL_PREFIX}/${CATKIN_PACKAGE_SHARE_DESTINATION}/test
-#     MD5 627aa0316bbfe4334e06023d7c2b4087
-#    )
-#   foreach(LAUNCH_FILE ${LAUNCH_FILES})
-#     roslaunch_add_file_check(${LAUNCH_FILE} USE_TEST_DEPENDENCIES)
-#   endforeach()
-  
-#   file(GLOB LAUNCH_FILES launch/*.launch test/*.test)
-# endif()
 
 ament_package()

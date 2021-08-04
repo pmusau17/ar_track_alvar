@@ -17,7 +17,7 @@ from sensor_msgs.msg import Image
 from ar_track_alvar_msgs.msg import AlvarMarkers
 
 # Test Parameters
-bag_name = os.path.join(get_package_share_directory('ar_track_alvar'),'ar_track_alvar_4markers_tork_2017-02-08-11-21-14.bag')
+bag_name = os.path.join(os.path.dirname(__file__),'resources','alvar-marker-pose-test.bag')
 cam_image_topic ="camera/image_raw" 
 cam_info_topic = "camera/camera_info" 	
 marker_margin="2"
