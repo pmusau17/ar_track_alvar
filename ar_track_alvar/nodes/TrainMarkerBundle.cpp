@@ -68,9 +68,14 @@ class TrainMarkerBundle : public rclcpp::Node
 		image_transport::Subscriber cam_sub_;
 		rclcpp::Publisher<ar_track_alvar_msgs::msg::AlvarMarkers>::SharedPtr arMarkerPub_;
     	rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr rvizMarkerPub_;
-		tf2_ros::TransformBroadcaster tf_broadcaster_;
-    	tf2_ros::TransformListener tf_listener_;
-    	tf2_ros::Buffer tf2_;
+
+		
+    	tf2::TimePoint prev_stamp_;
+    	std::shared_ptr<tf2_ros::Buffer> tf2_;
+    	std::shared_ptr<tf2_ros::TransformListener> tf_listener_;
+    	std::shared_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
+
+
 		MarkerDetector<MarkerData> marker_detector;
 		MultiMarkerInitializer *multi_marker_init=NULL;
 		MultiMarkerBundle *multi_marker_bundle=NULL;
@@ -97,8 +102,14 @@ class TrainMarkerBundle : public rclcpp::Node
 
 
 	public: 
-		TrainMarkerBundle(int argc, char* argv[]):Node("marker_detect"), tf2_(this->get_clock()), tf_listener_(tf2_), tf_broadcaster_(this)
+		TrainMarkerBundle(int argc, char* argv[]):Node("marker_detect")
 		{
+
+			rclcpp::Clock::SharedPtr clock = this->get_clock();
+        	tf2_ = std::make_shared<tf2_ros::Buffer>(clock);
+        	tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf2_);
+        	tf_broadcaster_ = std::make_shared<tf2_ros::TransformBroadcaster>(*this);
+        	prev_stamp_ = tf2::get_now();
 
 
 			if(argc < 8){
@@ -167,10 +178,10 @@ class TrainMarkerBundle : public rclcpp::Node
 			if(cam->getCamInfo_){
 				try{
 					//Get the transformation from the Camera to the output frame for this image capture
-					geometry_msgs::msg::TransformStamped CamToOutput;
+     				geometry_msgs::msg::TransformStamped CamToOutput;
 					try{
-						tf2_.canTransform(image_msg->header.frame_id, output_frame, image_msg->header.stamp, rclcpp::Duration(1.0));
-						CamToOutput= tf2_.lookupTransform(image_msg->header.frame_id, output_frame, image_msg->header.stamp,rclcpp::Duration(1.0));				
+						tf2::TimePoint tf2_time = tf2_ros::fromMsg(image_msg->header.stamp);
+          				CamToOutput = tf2_->lookupTransform(output_frame, image_msg->header.frame_id,tf2_time,tf2_time - prev_stamp_);			
 					}
 					catch (tf2::TransformException ex){
 						RCLCPP_ERROR(rclcpp::get_logger("ArTrackAlvar"), "%s",ex.what());
@@ -218,6 +229,7 @@ class TrainMarkerBundle : public rclcpp::Node
 				catch (cv_bridge::Exception& e){
 					RCLCPP_ERROR (this->get_logger(),"Could not convert from '%s' to 'rgb8'.", image_msg->encoding.c_str ());
 				}
+				prev_stamp_ = tf2_ros::fromMsg(image_msg->header.stamp);
 			}
 
 			//Sleep if we are auto collecting
@@ -349,7 +361,7 @@ class TrainMarkerBundle : public rclcpp::Node
 
             	camToMarker.transform.translation = trans;
             	camToMarker.transform.rotation = rot;
-            	tf_broadcaster_.sendTransform(camToMarker);
+            	tf_broadcaster_->sendTransform(camToMarker);
 			}
 
 			//Create the rviz visualization message

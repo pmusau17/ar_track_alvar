@@ -103,9 +103,11 @@ class FindMarkerBundles : public rclcpp::Node
     rclcpp::Subscription<sensor_msgs::msg::CameraInfo>::SharedPtr info_sub_;
 
 
-    tf2_ros::TransformBroadcaster tf_broadcaster_;
-    tf2_ros::TransformListener tf_listener_;
-    tf2_ros::Buffer tf2_;
+    tf2::TimePoint prev_stamp_;
+    tf2::TimePoint prev_stamp2_;
+    std::shared_ptr<tf2_ros::Buffer> tf2_;
+    std::shared_ptr<tf2_ros::TransformListener> tf_listener_;
+    std::shared_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
 
     MarkerDetector<MarkerData> marker_detector;
     MultiMarkerBundle **multi_marker_bundles=NULL;
@@ -130,8 +132,17 @@ class FindMarkerBundles : public rclcpp::Node
     
   public:
 
-    FindMarkerBundles(int argc, char* argv[]):Node("marker_detect"), tf2_(this->get_clock()), tf_listener_(tf2_), tf_broadcaster_(this)
+    FindMarkerBundles(int argc, char* argv[]):Node("marker_detect")
     {
+
+        rclcpp::Clock::SharedPtr clock = this->get_clock();
+        tf2_ = std::make_shared<tf2_ros::Buffer>(clock);
+        tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf2_);
+        tf_broadcaster_ = std::make_shared<tf2_ros::TransformBroadcaster>(*this);
+        prev_stamp_ = tf2::get_now();
+        prev_stamp2_ = tf2::get_now();
+
+
         if(argc < 9)
         {
           std::cout << std::endl;
@@ -217,7 +228,7 @@ class FindMarkerBundles : public rclcpp::Node
       {
           cam->SetCameraInfo(cam_info);
           cam->getCamInfo_ = true;
-          //sub_.reset();
+          info_sub_.reset();
       }
     }
 
@@ -370,17 +381,22 @@ class FindMarkerBundles : public rclcpp::Node
               p.point.z = corner_coord.z()/100.0;
               
               try{
-
-
-                  tf2_.canTransform(cloud.header.frame_id, marker_frame, rclcpp::Time(0), rclcpp::Duration(0.1));
                   geometry_msgs::msg::TransformStamped pt_transform; 
-                  pt_transform = tf2_.lookupTransform(cloud.header.frame_id, marker_frame, rclcpp::Time(0), rclcpp::Duration(0.1));
+                  tf2::TimePoint tf2_time = tf2_ros::fromMsg(rclcpp::Time(cloud.header.stamp));  
+          			  pt_transform = tf2_->lookupTransform(cloud.header.frame_id, marker_frame,tf2_time,tf2_time - prev_stamp2_);	
+
+
+                  // tf2_.canTransform(cloud.header.frame_id, marker_frame, rclcpp::Time(0), rclcpp::Duration(0.1));
+                  // geometry_msgs::msg::TransformStamped pt_transform; 
+                  // pt_transform = tf2_.lookupTransform(cloud.header.frame_id, marker_frame, rclcpp::Time(0), rclcpp::Duration(0.1));
                   tf2::doTransform(p, output_p,pt_transform);			
               }
               catch (tf2::TransformException ex){
                   RCLCPP_ERROR(rclcpp::get_logger("ArTrackAlvar"), "ERROR InferCorners: %s",ex.what());
                   return -1;
               }
+              prev_stamp2_ = tf2_ros::fromMsg(rclcpp::Time(cloud.header.stamp));
+              
 
               bund_corners[j].x += output_p.point.x;
               bund_corners[j].y += output_p.point.y;
@@ -637,7 +653,7 @@ class FindMarkerBundles : public rclcpp::Node
 
             	camToMarker.transform.translation = trans;
             	camToMarker.transform.rotation = rot;
-    tf_broadcaster_.sendTransform(camToMarker);
+    tf_broadcaster_->sendTransform(camToMarker);
 
     //Create the rviz visualization message
     rvizMarker->pose.position.x = markerPose.getOrigin().getX();
@@ -716,11 +732,12 @@ class FindMarkerBundles : public rclcpp::Node
     if(cam->getCamInfo_){
       try{
         //Get the transformation from the Camera to the output frame for this image capture
-        geometry_msgs::msg::TransformStamped CamToOutput;
+        std::string tf_error;
+     		geometry_msgs::msg::TransformStamped CamToOutput;
         try
         {
-          tf2_.canTransform(output_frame, msg->header.frame_id, msg->header.stamp, rclcpp::Duration(1.0));
-          CamToOutput = tf2_.lookupTransform(output_frame, msg->header.frame_id, msg->header.stamp, rclcpp::Duration(1.0));
+          tf2::TimePoint tf2_time = tf2_ros::fromMsg(image_msg.header.stamp);
+          CamToOutput = tf2_->lookupTransform(output_frame, image_msg.header.frame_id,tf2_time,tf2_time - prev_stamp_);	
         }
         catch (tf2::TransformException ex){
             RCLCPP_ERROR(this->get_logger(), "%s",ex.what());
@@ -794,6 +811,7 @@ class FindMarkerBundles : public rclcpp::Node
       {
         RCLCPP_ERROR (this->get_logger(),"ar_track_alvar: Image error: %s", image_msg.encoding.c_str ());
       }
+      prev_stamp_ = tf2_ros::fromMsg(image_msg.header.stamp);
     }
   }
 

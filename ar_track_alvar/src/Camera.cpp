@@ -245,16 +245,6 @@ void Camera::SetCameraInfo(const sensor_msgs::msg::CameraInfo::SharedPtr cam_inf
   }
 }
 
-// void Camera::camInfoCallback(const sensor_msgs::CameraInfoConstPtr& cam_info)
-// {
-//   if (!getCamInfo_)
-//   {
-//     SetCameraInfo(*cam_info);
-//     getCamInfo_ = true;
-//     sub_.shutdown();
-//   }
-// }
-
 bool Camera::SetCalib(const char* calibfile, int _x_res, int _y_res,
                       FILE_FORMAT format)
 {

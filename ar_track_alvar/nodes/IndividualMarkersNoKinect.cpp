@@ -71,15 +71,16 @@ class IndividualMarkersNoKinect : public rclcpp::Node
 
     rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr  enable_sub_;
     rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr  cam_sub_;
-    tf2::TimePoint prev_stamp_;
+    
 
     // image_transport::Subscriber cam_sub_;
 
+ 
     rclcpp::Publisher<ar_track_alvar_msgs::msg::AlvarMarkers>::SharedPtr arMarkerPub_;
     rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr rvizMarkerPub_;
     rclcpp::Subscription<sensor_msgs::msg::CameraInfo>::SharedPtr info_sub_;
 
-
+    tf2::TimePoint prev_stamp_;
     std::shared_ptr<tf2_ros::Buffer> tf2_;
     std::shared_ptr<tf2_ros::TransformListener> tf_listener_;
     std::shared_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
@@ -95,7 +96,6 @@ class IndividualMarkersNoKinect : public rclcpp::Node
     double max_track_error;
     std::string cam_image_topic;
     std::string cam_info_topic;
-    //image_transport::ImageTransport it_
     std::string output_frame;
     int marker_resolution = 5; // default marker resolution
     int marker_margin = 2; // default marker margin
@@ -219,7 +219,7 @@ class IndividualMarkersNoKinect : public rclcpp::Node
       {
           cam->SetCameraInfo(cam_info);
           cam->getCamInfo_ = true;
-          // info_sub_.reset();
+          info_sub_.reset();
       }
     }
 
@@ -404,37 +404,5 @@ int main(int argc, char *argv[])
   rclcpp::spin(std::make_shared<IndividualMarkersNoKinect>(argc,argv));
   rclcpp::shutdown();
   return 0;
-
-  // TODO Figure out how to do this 
-	// image_transport::ImageTransport it_(n);
-
-  // // Run at the configured rate, discarding pointcloud msgs if necessary
-  // rclcpp::Rate rate(max_frequency);
-
-
-  // enableSwitched = true;
-  // while (rclcpp::ok())
-  // {
-  //   rclcpp::spin_some(node);
-  //   rate.sleep();
-
-  //   if (std::abs((rate.expectedCycleTime() - rclcpp::Duration(1.0 / max_frequency)).toSec()) > 0.001)
-  //   {
-  //     // Change rate dynamically; if must be above 0, as 0 will provoke a segfault on next spinOnce
-  //     RCLCPP_DEBUG(rclcpp::get_logger("ArTrackAlvar"), "Changing frequency from %.2f to %.2f", 1.0 / rate.expectedCycleTime().toSec(), max_frequency);
-  //     rate = rclcpp::Rate(max_frequency);
-  //   }
-
-  //   if (enableSwitched)
-  //   {
-  //     // Enable/disable switch: subscribe/unsubscribe to make use of pointcloud processing nodelet
-  //     // lazy publishing policy; in CPU-scarce computer as TurtleBot's laptop this is a huge saving
-  //       if (enabled)
-  //           cam_sub_ = it_.subscribe(cam_image_topic, 1, &getCapCallback);
-  //       else
-  //           cam_sub_.shutdown();
-  //       enableSwitched = false;
-  //   }
-  // }
 
 }

@@ -76,13 +76,16 @@ class IndividualMarkers : public rclcpp::Node
     rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr  rvizMarkerPub2_;
     rclcpp::Subscription<sensor_msgs::msg::CameraInfo>::SharedPtr info_sub_;
 
-    tf2_ros::TransformBroadcaster tf_broadcaster_;
-    tf2_ros::TransformListener tf_listener_;
-    tf2_ros::Buffer tf2_;
+
+    tf2::TimePoint prev_stamp_;
+    std::shared_ptr<tf2_ros::Buffer> tf2_;
+    std::shared_ptr<tf2_ros::TransformListener> tf_listener_;
+    std::shared_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
  
     ar_track_alvar_msgs::msg::AlvarMarkers arPoseMarkers_;
     visualization_msgs::msg::Marker rvizMarker_;
 
+    
     MarkerDetector<MarkerData> marker_detector;
     bool enableSwitched = false;
     bool enabled = true;
@@ -101,8 +104,15 @@ class IndividualMarkers : public rclcpp::Node
 
 
   public:
-      IndividualMarkers(int argc, char* argv[]):Node("marker_detect"), tf2_(this->get_clock()), tf_listener_(tf2_), tf_broadcaster_(this)
+      IndividualMarkers(int argc, char* argv[]):Node("marker_detect")
       {
+
+        rclcpp::Clock::SharedPtr clock = this->get_clock();
+        tf2_ = std::make_shared<tf2_ros::Buffer>(clock);
+        tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf2_);
+        tf_broadcaster_ = std::make_shared<tf2_ros::TransformBroadcaster>(*this);
+        prev_stamp_ = tf2::get_now();
+
         if(argc > 1) 
         {
           RCLCPP_WARN(this->get_logger(), "Command line arguments are deprecated. Consider using ROS parameters and remappings.");
@@ -188,7 +198,7 @@ class IndividualMarkers : public rclcpp::Node
           RCLCPP_INFO(this->get_logger(), "Subscribing to image topic");
 
           cloud_sub_ = this->create_subscription<sensor_msgs::msg::PointCloud2>(cam_image_topic, 1, 
-            std::bind(&IndividualMarkers::getPointCloudCallback, this, std::placeholders::_1));
+          std::bind(&IndividualMarkers::getPointCloudCallback, this, std::placeholders::_1));
         }
 
         RCLCPP_INFO(this->get_logger(),"Subscribing to info topic");
@@ -201,7 +211,7 @@ class IndividualMarkers : public rclcpp::Node
       {
           cam->SetCameraInfo(cam_info);
           cam->getCamInfo_ = true;
-          //sub_.reset();
+          info_sub_.reset();
       }
     }
 
@@ -489,11 +499,13 @@ void draw3dPoints(ARCloud::Ptr cloud, string frame, int color, int id, double ra
       //Use the kinect to improve the pose
       Pose ret_pose;
       GetMarkerPoses(&ipl_image, cloud);
-
+      std::string tf_error;
       geometry_msgs::msg::TransformStamped CamToOutput;
-      try {
-          tf2_.canTransform(output_frame, image_msg.header.frame_id, image_msg.header.stamp,rclcpp::Duration(1.0));
-          CamToOutput = tf2_.lookupTransform(output_frame, image_msg.header.frame_id, image_msg.header.stamp, rclcpp::Duration(1.0));
+      try 
+      {
+          tf2::TimePoint tf2_time = tf2_ros::fromMsg(image_msg.header.stamp);
+          CamToOutput = tf2_->lookupTransform(output_frame, image_msg.header.frame_id,tf2_time,tf2_time - prev_stamp_);
+
       } catch (tf2::TransformException ex) {
           RCLCPP_ERROR(this->get_logger(), "%s",ex.what());
       }
@@ -546,7 +558,7 @@ void draw3dPoints(ARCloud::Ptr cloud, string frame, int color, int id, double ra
 
         camToMarker.transform.translation = trans;
         camToMarker.transform.rotation = rot;
-        tf_broadcaster_.sendTransform(camToMarker);
+        tf_broadcaster_->sendTransform(camToMarker);
 
 
         //Create the rviz visualization messages
@@ -631,6 +643,7 @@ void draw3dPoints(ARCloud::Ptr cloud, string frame, int color, int id, double ra
     {
         RCLCPP_ERROR(this->get_logger(),"Could not convert from '%s' to 'rgb8'.", image_msg.encoding.c_str ());
     }
+    prev_stamp_ = tf2_ros::fromMsg(image_msg.header.stamp);
   }
   }
 };

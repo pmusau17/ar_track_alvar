@@ -5,17 +5,10 @@ find_package(ament_cmake REQUIRED)
 find_package(ament_cmake_auto REQUIRED)
 ament_auto_find_build_dependencies()
 
-find_package(OpenCV REQUIRED COMPONENTS calib3d core highgui imgproc)
-if(OpenCV_VERSION VERSION_GREATER 4.5.0)
-  target_compile_definitions(library PUBLIC USE_LEGACY_TRACKING=1)
-endif()
-
+find_package(OpenCV REQUIRED)
 if(NOT DEFINED CMAKE_SUPPRESS_DEVELOPER_WARNINGS)
      set(CMAKE_SUPPRESS_DEVELOPER_WARNINGS 1 CACHE INTERNAL "No dev warnings")
 endif()
-
-find_package(ament_cmake_auto REQUIRED)
-ament_auto_find_build_dependencies()
 
 find_package(rclcpp REQUIRED)
 find_package(tf2_ros REQUIRED)
@@ -34,12 +27,10 @@ find_package(geometry_msgs REQUIRED)
 find_package(rosbag2_bag_v2_plugins REQUIRED)
 find_package(visualization_msgs REQUIRED)
 find_package(PCL REQUIRED QUIET COMPONENTS common io)
-
 find_package(Eigen3 REQUIRED)
-find_package(tinyxml_vendor)
+find_package(tinyxml_vendor REQUIRED)
 
 include_directories(include)
-
 
 # Kinect filtering code
 set(KINECT_FILTERING_TARGETS kinect_filtering medianFilter)
@@ -194,10 +185,7 @@ if(BUILD_TESTING)
   )
 
 endif()
-#TODO fix these tests
-# if(BUILD_TESTING)
-#   add_subdirectory(test)
-# endif()
+
 
 
 # if (BUILD_TESTING)
@@ -222,9 +210,5 @@ endif()
   
 #   file(GLOB LAUNCH_FILES launch/*.launch test/*.test)
 # endif()
-
-include(CheckCXXCompilerFlag)
-CHECK_CXX_COMPILER_FLAG("-std=c++11" COMPILER_SUPPORTS_CXX11)
-CHECK_CXX_COMPILER_FLAG("-std=c++0x" COMPILER_SUPPORTS_CXX0X)
 
 ament_package()

@@ -36,13 +36,13 @@ output_frame="camera"
 def generate_test_description():
 
     return LaunchDescription([
-        # Bag Node
-
+        # Launch bag with four markers
         launch.actions.ExecuteProcess(
             cmd=['ros2', 'bag', 'play', '--loop','-s',"rosbag_v2",bag_name],
             output='screen'
         ),
-
+        
+        # Invidividual Marker Detector
         Node(
             package='ar_track_alvar',
             executable='individualMarkersNoKinect',
@@ -71,17 +71,7 @@ class TestArTrack(unittest.TestCase):
         rclpy.shutdown()
 
 
-    def test_markers_received(self):
-        # # Expect the disparity node to publish on '/disparity' topic
-        # msgs_received = []
-        # self.node.create_subscription(
-        #     AlvarMarkers,
-        #     "ar_pose_marker",
-        #     lambda msg: msgs_received.append(msg),
-        #     1
-        # )
-        
-
+    def test_marker_pose_estimation(self):
         transforms =[]
         start_time = time.time()
         while  rclpy.ok() and (time.time() - start_time) < 120:
@@ -109,14 +99,14 @@ class TestArTrack(unittest.TestCase):
                     
                 except (LookupException, ConnectivityException, ExtrapolationException) as e:
                         continue
+            
+            # Break when we've received all four markers
             if(len(transforms)>=4):
                 break
-        print(transforms[0])
-        print(tf_expected[0])
 
-        # there are four markers in the test bag
+        # There are four markers in the test bag. 
+        # Make sure the deviation in rotation and translation is less than 0.1
         for i in range(4):
-            
             trans = np.abs(np.asarray(transforms[i][0]) - np.asarray(tf_expected[i][0]))
             assert np.max(trans) < 0.1
             rot = np.abs(  np.asarray(transforms[i][1]) - np.asarray(tf_expected[i][1]))
