@@ -122,7 +122,21 @@ class FindMarkerBundlesNoKinect : public rclcpp::Node
           cam_info_topic = argv[5];
           output_frame = argv[6];
           int n_args_before_list = 7;
-          n_bundles = argc - n_args_before_list;
+          n_bundles =0;
+          std::string argument;
+          // stop before --ros-arg argument
+          for (int j=n_args_before_list; j<argc; j++)
+          {
+            argument = argv[j];
+            if (argument.compare("--ros-args")==0)
+            {
+              break;
+            }
+            else
+            {
+              n_bundles++;
+            }
+          }
 
           marker_detector.SetMarkerSize(marker_size);
           multi_marker_bundles = new MultiMarkerBundle*[n_bundles];	

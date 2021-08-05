@@ -111,13 +111,16 @@ class TrainMarkerBundle : public rclcpp::Node
         	tf_broadcaster_ = std::make_shared<tf2_ros::TransformBroadcaster>(*this);
         	prev_stamp_ = tf2::get_now();
 
-
+			bool testing = false;
 			if(argc < 8){
 				std::cout << std::endl;
 				cout << "Not enough arguments provided." << endl;
 				cout << "Usage: ./trainMarkerBundle <num of markers> <marker size in cm> <max new marker error> <max track error> <cam image topic> <cam info topic> <output frame>" << endl;
 				std::cout << std::endl;
 				exit(0);
+			}
+			else if(argc>8){
+				testing=true;
 			}
 
 			// Get params from command line
@@ -131,7 +134,8 @@ class TrainMarkerBundle : public rclcpp::Node
 			marker_detector.SetMarkerSize(marker_size);
 			cam = new Camera();
 
-
+			if(!testing)
+				cv::namedWindow("Command input window", cv::WINDOW_AUTOSIZE); 
 			//Give tf a chance to catch up before the camera callback starts asking for transforms
       		// It will also reconfigure parameters for the first time, setting the default values
       		//TODO: come back to this, there's probably a better way to do this 
@@ -160,7 +164,7 @@ class TrainMarkerBundle : public rclcpp::Node
 		{
 			cam->SetCameraInfo(cam_info);
 			cam->getCamInfo_ = true;
-			//sub_.reset();
+			info_sub_.reset();
 		}
 		}
 
@@ -501,7 +505,7 @@ int main(int argc, char *argv[])
     std::cout << "Please type commands with the openCV window selected" << std::endl;
 	std::cout << std::endl;
 
-	cv::namedWindow("Command input window", cv::WINDOW_AUTOSIZE); 
+	
 
 	while(1){
 		int key = cv::waitKey(20);

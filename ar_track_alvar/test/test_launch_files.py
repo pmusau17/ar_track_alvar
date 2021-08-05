@@ -25,38 +25,45 @@ pr2_train = os.path.join(get_package_share_directory('ar_track_alvar'),'launch',
 
 bag_name = os.path.join(os.path.dirname(__file__),'resources','alvar-marker-pose-test.bag')
 
-# pr2_bundle_no_kinect = launch.actions.IncludeLaunchDescription(launch.launch_description_sources.PythonLaunchDescriptionSource(pr2_bundle_no_kinect))
-# pr2_bundle = launch.actions.IncludeLaunchDescription(launch.launch_description_sources.PythonLaunchDescriptionSource(pr2_bundle))
-# pr2_indiv_no_kinect = launch.actions.IncludeLaunchDescription(launch.launch_description_sources.PythonLaunchDescriptionSource(pr2_indiv_no_kinect))
-# pr2_indiv = launch.actions.IncludeLaunchDescription(launch.launch_description_sources.PythonLaunchDescriptionSource(pr2_indiv))
-# pr2_train = launch.actions.IncludeLaunchDescription(launch.launch_description_sources.PythonLaunchDescriptionSource(pr2_train))
-
 @pytest.mark.rostest
 def generate_test_description():
     return LaunchDescription([
         
         # Launch Bag
-        launch.actions.ExecuteProcess(
-            cmd=['ros2', 'bag', 'play','--loop', '-s',"rosbag_v2",bag_name],
-            output='screen'
-        ),
+        # launch.actions.ExecuteProcess(
+        #     cmd=['ros2', 'bag', 'play','--loop', '-s',"rosbag_v2",bag_name],
+        #     output='screen'
+        # ),
 
-        # include the child launch file
+        # IndividualMarkersNoKinect Launch File
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource([get_package_share_directory('ar_track_alvar'), '/launch/pr2_indiv_no_kinect.py']),
         ),
+
+        # IndividualMarkers Launch File 
+        IncludeLaunchDescription(
+            PythonLaunchDescriptionSource([get_package_share_directory('ar_track_alvar'), '/launch/pr2_indiv.py']),
+        ),
+
+        # FindMarkerBundles Launch File
+        IncludeLaunchDescription(
+            PythonLaunchDescriptionSource([get_package_share_directory('ar_track_alvar'), '/launch/pr2_bundle.py']),
+        ),
+
+        # FindMarkerBundlesNoKinect Launch File
+        IncludeLaunchDescription(
+            PythonLaunchDescriptionSource([get_package_share_directory('ar_track_alvar'), '/launch/pr2_bundle_no_kinect_testing.py']),
+        ),
+
+        # TrainMarkerBundle Launch File
+        IncludeLaunchDescription(
+            PythonLaunchDescriptionSource([get_package_share_directory('ar_track_alvar'), '/launch/pr2_train.py']),
+        ),
+
+
         launch_testing.actions.ReadyToTest(),
     ])
-    # return launch.LaunchDescription
-    # ([
-    #     # pr2_bundle_no_kinect,
-    #     # pr2_bundle,
-    #     # pr2_indiv_no_kinect,
-    #     # pr2_indiv,
-    #     # pr2_train,
-    #     launch_testing.actions.ReadyToTest(),
-    # ])
-
+    
 class TestArTrack(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -72,7 +79,7 @@ class TestArTrack(unittest.TestCase):
         # Wait up to 10 seconds for all the nodes to launch
         launch_success=True
         start_time = time.time()
-        while (time.time() - start_time) < 10:
+        while (time.time() - start_time) < 5:
             rclpy.spin_once(self.node, timeout_sec=0.1)
 
         assert launch_success

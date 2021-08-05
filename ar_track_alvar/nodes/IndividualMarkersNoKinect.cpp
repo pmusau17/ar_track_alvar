@@ -69,7 +69,6 @@ class IndividualMarkersNoKinect : public rclcpp::Node
     visualization_msgs::msg::Marker rvizMarker_;
     
 
-    rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr  enable_sub_;
     rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr  cam_sub_;
     
 
@@ -88,8 +87,8 @@ class IndividualMarkersNoKinect : public rclcpp::Node
 
     MarkerDetector<MarkerData> marker_detector;
 
-    bool enableSwitched = false;
-    bool enabled = true;
+    double parameters_set = false;
+    rclcpp::TimerBase::SharedPtr timer_;
     double max_frequency=8.0;
     double marker_size;
     double max_new_marker_error;
@@ -109,109 +108,46 @@ class IndividualMarkersNoKinect : public rclcpp::Node
         tf2_ = std::make_shared<tf2_ros::Buffer>(clock);
         tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf2_);
         tf_broadcaster_ = std::make_shared<tf2_ros::TransformBroadcaster>(*this);
+ 
+        // Get parameters.
+        this->declare_parameter<double>("marker_size", 10.0);
+        this->declare_parameter<double>("max_new_marker_error", 0.08);
+        this->declare_parameter<double>("max_track_error", 0.2);
+        this->declare_parameter<double>("max_frequency", 8.0);
+        this->declare_parameter<int>("marker_resolution", 5);
+        this->declare_parameter<int>("marker_margin", 2);
+        this->declare_parameter<std::string>("output_frame", "");
 
-        if(argc > 2) 
-        {
-          RCLCPP_WARN(this->get_logger(), "Command line arguments are deprecated. Consider using ROS parameters and remappings.");
-
-          if(argc < 7)
-          {
-              std::cout << std::endl;
-              cout << "Not enough arguments provided." << endl;
-              cout << "Usage: ./individualMarkersNoKinect <marker size in cm> <max new marker error> <max track error> "
-              << "<cam image topic> <cam info topic> <output frame> [ <max frequency> <marker_resolution> <marker_margin>]";
-              std::cout << std::endl;
-              exit(0);
-          }
-
-          // Get params from command line
-          marker_size = atof(argv[1]);
-          max_new_marker_error = atof(argv[2]);
-          max_track_error = atof(argv[3]);
-          cam_image_topic = argv[4];
-          cam_info_topic = argv[5];
-          output_frame = argv[6];
-
-          RCLCPP_INFO(this->get_logger(),"marker_size: %f, max_new_marker_error: %f,  max_track_error: %f",marker_size,max_new_marker_error,max_track_error);
-
-          if (argc > 7)
-          {
-            max_frequency = atof(argv[7]);
-            this->declare_parameter<double>("max_frequency", max_frequency);
-          }
-          if (argc > 8)
-          {
-            marker_resolution = atoi(argv[8]);
-          }
-          
-          if (argc > 9)
-          {
-            marker_margin = atoi(argv[9]);
-          }
-          
-        } 
-        
-        else 
-        {
-          // Get params from ros param server.
-          this->declare_parameter<double>("marker_size", 10.0);
-          this->declare_parameter<double>("max_new_marker_error", 0.08);
-          this->declare_parameter<double>("max_track_error", 0.2);
-          this->declare_parameter<double>("max_frequency", 8.0);
-          this->declare_parameter<int>("marker_resolution", 5);
-          this->declare_parameter<double>("marker_margin", 2);
-
-
-          this->get_parameter("marker_size", marker_size);
-          this->get_parameter("max_new_marker_error", max_new_marker_error);
-          this->get_parameter("max_track_error", max_track_error);
-          this->get_parameter("max_frequency", max_frequency);
-          this->get_parameter("marker_resolution", marker_resolution);
-          this->get_parameter("marker_margin", marker_margin);
-
-
-
-
-        if (!this->get_parameter("output_frame", output_frame))
-        {
-            RCLCPP_ERROR(this->get_logger(), "Param 'output_frame' has to be set.");
-            exit(0);
-        }
 
         // Camera input topics. Use remapping to map to your camera topics.
         cam_image_topic = "camera_image";
         cam_info_topic = "camera_info";
-      }
 
-      marker_detector.SetMarkerSize(marker_size, marker_resolution, marker_margin);
-	    cam = new Camera();
+        marker_detector.SetMarkerSize(marker_size, marker_resolution, marker_margin);
+	      cam = new Camera();
       
-      prev_stamp_ = tf2::get_now();
+        prev_stamp_ = tf2::get_now();
 
-      //Give tf a chance to catch up before the camera callback starts asking for transforms
-      // It will also reconfigure parameters for the first time, setting the default values
-      //TODO: come back to this, there's probably a better way to do this 
-      rclcpp::Rate loop_rate(100);
-      loop_rate.sleep();
+        //Give tf a chance to catch up before the camera callback starts asking for transforms
+        // It will also reconfigure parameters for the first time, setting the default values
+        //TODO: come back to this, there's probably a better way to do this 
+        rclcpp::Rate loop_rate(100);
+        loop_rate.sleep();
 
-      arMarkerPub_ = this->create_publisher<ar_track_alvar_msgs::msg::AlvarMarkers> ("ar_pose_marker", 0);
-      rvizMarkerPub_ = this->create_publisher<visualization_msgs::msg::Marker> ("visualization_marker", 0);
+        arMarkerPub_ = this->create_publisher<ar_track_alvar_msgs::msg::AlvarMarkers> ("ar_pose_marker", 0);
+        rvizMarkerPub_ = this->create_publisher<visualization_msgs::msg::Marker> ("visualization_marker", 0);
 
-      cam_sub_ = this->create_subscription<sensor_msgs::msg::Image>(cam_image_topic, 1, 
-            std::bind(&IndividualMarkersNoKinect::getCapCallback, this, std::placeholders::_1));
+        cam_sub_ = this->create_subscription<sensor_msgs::msg::Image>(cam_image_topic, 1, 
+              std::bind(&IndividualMarkersNoKinect::getCapCallback, this, std::placeholders::_1));
 
 
-      enable_sub_ = this->create_subscription<std_msgs::msg::Bool>("enable_detection", 1, std::bind(&IndividualMarkersNoKinect::enableCallback, this, std::placeholders::_1));
-      RCLCPP_INFO(this->get_logger(),"Subscribing to info topic");
-	    info_sub_ = this->create_subscription<sensor_msgs::msg::CameraInfo>(cam_info_topic, 1, std::bind(&IndividualMarkersNoKinect::InfoCallback, this, std::placeholders::_1));
+        RCLCPP_INFO(this->get_logger(),"Subscribing to info topic");
+        info_sub_ = this->create_subscription<sensor_msgs::msg::CameraInfo>(cam_info_topic, 1, std::bind(&IndividualMarkersNoKinect::InfoCallback, this, std::placeholders::_1));
+
+        timer_ = this->create_wall_timer(1000ms, std::bind(&IndividualMarkersNoKinect::set_parameters, this));
 
     }
 
-    void enableCallback(const std_msgs::msg::Bool::SharedPtr msg)
-    {
-      enableSwitched = enabled != msg->data;
-      enabled = msg->data;
-    }
 
     void InfoCallback (const sensor_msgs::msg::CameraInfo::SharedPtr cam_info) 
     {
@@ -224,13 +160,34 @@ class IndividualMarkersNoKinect : public rclcpp::Node
     }
 
 
+    void set_parameters()
+    {
+        if (output_frame.empty())
+        {
+            RCLCPP_INFO(this->get_logger(), "Param 'output_frame' has to be set. output frame %s",output_frame.c_str());
+        }
+        else
+        {
+          parameters_set=true;
+        }
+
+        this->get_parameter("marker_size", marker_size);
+        this->get_parameter("max_new_marker_error", max_new_marker_error);
+        this->get_parameter("max_track_error", max_track_error);
+        this->get_parameter("max_frequency", max_frequency);
+        this->get_parameter("marker_resolution", marker_resolution);
+        this->get_parameter("marker_margin", marker_margin);
+        this->get_parameter("output_frame", output_frame);
+    }
+
+
     void getCapCallback (const sensor_msgs::msg::Image::SharedPtr image_msg)
     //void getCapCallback(const sensor_msgs::msg::Image::ConstSharedPtr& image_msg)
     {
         std::string tf_error;
         
         //If we've already gotten the cam info, then go ahead
-        if(cam->getCamInfo_){
+        if(cam->getCamInfo_ && parameters_set){
 		    try
         {
 		      geometry_msgs::msg::TransformStamped CamToOutput; 

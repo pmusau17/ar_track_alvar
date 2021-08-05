@@ -24,6 +24,6 @@ def generate_launch_description():
                 ("camera_image", cam_image_topic),
                 ("camera_info",cam_info_topic)
             ],
-            arguments=[marker_size, max_new_marker_error, max_track_error, cam_image_topic, cam_info_topic, output_frame, truth_table_leg, table_bundle],
+            arguments=[marker_size, max_new_marker_error, max_track_error, cam_image_topic, cam_info_topic, output_frame, truth_table_leg, table_bundle,"true"],
         ),
     ])

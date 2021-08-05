@@ -18,16 +18,6 @@ from ar_track_alvar_msgs.msg import AlvarMarkers
 
 # Test Parameters
 bag_name = os.path.join(os.path.dirname(__file__),'resources','alvar-marker-pose-test.bag')
-cam_image_topic ="camera/image_raw" 
-cam_info_topic = "camera/camera_info" 	
-marker_margin="2"
-marker_resolution="5"
-marker_size="2.3"
-max_new_marker_error="0.08"
-max_frequency="100"
-max_track_error="0.2"
-output_frame="camera"
-
 @pytest.mark.rostest
 def generate_test_description():
 
@@ -35,7 +25,7 @@ def generate_test_description():
         # DisparityNode
 
         launch.actions.ExecuteProcess(
-            cmd=['ros2', 'bag', 'play', '-s',"rosbag_v2",bag_name],
+            cmd=['ros2', 'bag', 'play','--loop','-s',"rosbag_v2",bag_name],
             output='screen'
         ),
 
@@ -44,10 +34,18 @@ def generate_test_description():
             executable='individualMarkersNoKinect',
             name='individual_markers',
             remappings=[
-                ("camera_image", cam_image_topic),
-                ("camera_info",cam_info_topic)
+                ("camera_image", "camera/image_raw"),
+                ("camera_info", "camera/camera_info")
             ],
-            arguments=[marker_size,max_new_marker_error, max_track_error,cam_image_topic,  cam_info_topic, output_frame, max_frequency, marker_resolution, marker_margin],
+            parameters=[
+                {"marker_size":2.3},
+		        {"max_new_marker_error":0.08},
+		        {"max_track_error":0.2},
+		        {"output_frame":"camera"},
+                {"max_frequency":100.0},
+                {"marker_margin":2},
+                {"marker_resolution":5}
+            ],
             output='screen'
         ),
         launch_testing.actions.ReadyToTest(),

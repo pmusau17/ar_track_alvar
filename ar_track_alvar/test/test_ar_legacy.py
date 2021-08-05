@@ -22,16 +22,6 @@ from tf2_ros import TransformBroadcaster, TransformListener, TransformStamped, B
 
 # Test Parameters
 bag_name = os.path.join(os.path.dirname(__file__),'resources','alvar-marker-pose-test.bag')
-cam_image_topic ="camera/image_raw" 
-cam_info_topic = "camera/camera_info" 	
-marker_margin="2"
-marker_resolution="5"
-marker_size="2.3"
-max_new_marker_error="0.08"
-max_frequency="100"
-max_track_error="0.2"
-output_frame="camera"
-        
 @pytest.mark.rostest
 def generate_test_description():
 
@@ -48,10 +38,18 @@ def generate_test_description():
             executable='individualMarkersNoKinect',
             name='individual_markers',
             remappings=[
-                ("camera_image", cam_image_topic),
-                ("camera_info",cam_info_topic)
+                ("camera_image", "camera/image_raw"),
+                ("camera_info", "camera/camera_info")
             ],
-            arguments=[marker_size,max_new_marker_error, max_track_error,cam_image_topic,  cam_info_topic, output_frame, max_frequency, marker_resolution, marker_margin],
+            parameters=[
+                {"marker_size":2.3},
+		        {"max_new_marker_error":0.08},
+		        {"max_track_error":0.2},
+		        {"output_frame":"camera"},
+                {"max_frequency":100.0},
+                {"marker_margin":2},
+                {"marker_resolution":5}
+            ],
             output='screen'
         ),
         launch_testing.actions.ReadyToTest(),
@@ -72,8 +70,9 @@ class TestArTrack(unittest.TestCase):
 
 
     def test_marker_pose_estimation(self):
-        transforms =[]
+        transforms={}
         start_time = time.time()
+        count = 0
         while  rclpy.ok() and (time.time() - start_time) < 120:
             rclpy.spin_once(self.node, timeout_sec=0.1)
 
@@ -86,6 +85,7 @@ class TestArTrack(unittest.TestCase):
                         [[-0.04805772245624329, 0.039528315926071665, 0.26775882622136327], [0.48207151562664247, 0.8758763282975102, -0.016363763970395625, -0.013414118615296202]],
                         [[0.007233278235745441, 0.015615692018491452, 0.26619586686955365], [0.08546919545682985, 0.9959809257461487, 0.00424040439, -0.02677659572186436]],
                         [[0.06223014382428272, 0.014613815037010106, 0.26226145707174475], [-0.46400320825216246, 0.8850390875261293, 0.032644264656690035, -0.018471282241381157]]]
+            
             for i in range (0, len(tf_expected)):
                 try:
                     target_frame = 'ar_marker_{}'.format(i)
@@ -95,22 +95,23 @@ class TestArTrack(unittest.TestCase):
                     rot = obj.transform.rotation
                     
                     item = [[trans.x,trans.y,trans.z],[rot.x,rot.y,rot.z,rot.w]]
-                    transforms.append(item)
+                    transforms[i] = item
                     
                 except (LookupException, ConnectivityException, ExtrapolationException) as e:
                         continue
-            
-            # Break when we've received all four markers
-            if(len(transforms)>=4):
-                break
 
+            # Break when we've received all four markers
+            if(len(transforms)==4):
+                 break
+                
         # There are four markers in the test bag. 
-        # Make sure the deviation in rotation and translation is less than 0.1
-        for i in range(4):
-            trans = np.abs(np.asarray(transforms[i][0]) - np.asarray(tf_expected[i][0]))
-            assert np.max(trans) < 0.1
-            rot = np.abs(  np.asarray(transforms[i][1]) - np.asarray(tf_expected[i][1]))
-            assert np.max(trans) < 0.1
+        # Make sure the deviation in rotation and translation is less than 0.15 for translation, 0.1 for orientation
+        if(len(transforms)>=4):
+            for i in range(4):
+                trans = np.abs(np.asarray(transforms[i][0]) - np.asarray(tf_expected[i][0]))
+                rot = np.abs( np.asarray(transforms[i][1]) - np.asarray(tf_expected[i][1]))
+                assert np.max(trans) < 0.16
+                assert np.max(rot) < 0.1
 
 
 
