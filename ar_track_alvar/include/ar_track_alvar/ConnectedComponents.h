@@ -125,8 +125,16 @@ public:
   LabelingCvSeq();
   ~LabelingCvSeq();
 
+  /**
+   * \brief Unused function, functionality was left as a TODO
+   */
   void SetOptions(bool _detect_pose_grayscale = false);
 
+  /**
+   * \brief Labels image and filters blobs to obtain square-shaped objects from
+   * the scene. visualize parameter controls whether or not to draw the detected 
+   * borders of the marker
+   */
   void LabelSquares(cv::Mat& image, bool visualize = false);
 
   std::vector<std::vector<cv::Point>> LabelImage(cv::Mat& image, int min_size,

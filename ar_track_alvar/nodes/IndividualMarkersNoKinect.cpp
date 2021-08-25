@@ -64,7 +64,7 @@ MarkerDetector<MarkerData> marker_detector;
 
 bool enableSwitched = false;
 bool enabled = true;
-double max_frequency = 8.0;
+double max_frequency = 100.0;
 double marker_size;
 double max_new_marker_error;
 double max_track_error;

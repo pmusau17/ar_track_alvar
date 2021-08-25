@@ -81,7 +81,7 @@ std::string cam_info_topic;
 std::string output_frame;
 int nof_markers;
 
-double GetMultiMarkerPose(IplImage* image, Pose& pose);
+double GetMultiMarkerPose(cv::Mat& image, Pose& pose);
 void getCapCallback(const sensor_msgs::ImageConstPtr& image_msg);
 int keyCallback(int key);
 void makeMarkerMsgs(int type, int id, Pose& p,
