@@ -23,7 +23,6 @@ This package is a ROS wrapper for Alvar, an open source AR tag tracking library.
 <depend>sensor_msgs</depend>
 <depend>std_msgs</depend>
 <depend>tf2</depend>
-<depend>ament_download</depend>
 <depend>rosbag2_bag_v2_plugins</depend>
 <depend>tf2_ros</depend>
 <depend>tf2_geometry_msgs</depend>
