@@ -17,7 +17,6 @@ find_package(image_transport REQUIRED)
 find_package(resource_retriever REQUIRED)
 find_package(cv_bridge REQUIRED)
 find_package(perception_pcl  REQUIRED)
-find_package(pcl_ros)
 find_package(pcl_conversions REQUIRED)
 find_package(ar_track_alvar_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
@@ -27,6 +26,7 @@ find_package(geometry_msgs REQUIRED)
 find_package(rosbag2_bag_v2_plugins REQUIRED)
 find_package(visualization_msgs REQUIRED)
 find_package(PCL REQUIRED QUIET COMPONENTS common io)
+find_package(PCL REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(tinyxml_vendor REQUIRED)
 
@@ -40,7 +40,6 @@ set(dependencies
   OpenCV
   tf2_ros 
   tf2
-  pcl_ros
   pcl_conversions 
   std_msgs 
   tinyxml_vendor
@@ -94,7 +93,7 @@ add_library(${PROJECT_NAME}
     src/Util.cpp
 )
     
-target_link_libraries(${PROJECT_NAME} ${OpenCV_LIBRARIES} tinyxml)
+target_link_libraries(${PROJECT_NAME} ${OpenCV_LIBRARIES} ${PCL_LIBRARIES} tinyxml)
 ament_target_dependencies(ar_track_alvar ${dependencies})
 
 add_library(kinect_filtering src/kinect_filtering.cpp)
@@ -102,11 +101,11 @@ ament_target_dependencies(kinect_filtering ${dependencies})
 
 
 add_library(medianFilter src/medianFilter.cpp)
-target_link_libraries(medianFilter ar_track_alvar ${TinyXML_LIBRARIES})
+target_link_libraries(medianFilter ar_track_alvar ${PCL_LIBRARIES} ${TinyXML_LIBRARIES})
 ament_target_dependencies(medianFilter ${dependencies})
 
 add_executable(individualMarkers nodes/IndividualMarkers.cpp)
-target_link_libraries(individualMarkers ar_track_alvar kinect_filtering  ${TinyXML_LIBRARIES})
+target_link_libraries(individualMarkers ar_track_alvar kinect_filtering ${PCL_LIBRARIES} ${TinyXML_LIBRARIES})
 ament_target_dependencies(individualMarkers ${dependencies})
 
 add_executable(individualMarkersNoKinect nodes/IndividualMarkersNoKinect.cpp)
@@ -114,20 +113,20 @@ target_link_libraries(individualMarkersNoKinect ar_track_alvar)
 ament_target_dependencies(individualMarkersNoKinect ${dependencies})
 
 add_executable(trainMarkerBundle nodes/TrainMarkerBundle.cpp)
-target_link_libraries(trainMarkerBundle ar_track_alvar  ${TinyXML_LIBRARIES})
+target_link_libraries(trainMarkerBundle ar_track_alvar  ${PCL_LIBRARIES} ${TinyXML_LIBRARIES})
 ament_target_dependencies(trainMarkerBundle ${dependencies})
 
 
 add_executable(findMarkerBundles nodes/FindMarkerBundles.cpp)
-target_link_libraries(findMarkerBundles ar_track_alvar kinect_filtering medianFilter  ${TinyXML_LIBRARIES})
+target_link_libraries(findMarkerBundles ar_track_alvar kinect_filtering medianFilter ${PCL_LIBRARIES}  ${TinyXML_LIBRARIES})
 ament_target_dependencies(findMarkerBundles ${dependencies})
 
 add_executable(findMarkerBundlesNoKinect nodes/FindMarkerBundlesNoKinect.cpp)
-target_link_libraries(findMarkerBundlesNoKinect ar_track_alvar  ${TinyXML_LIBRARIES})
+target_link_libraries(findMarkerBundlesNoKinect ar_track_alvar ${PCL_LIBRARIES} ${TinyXML_LIBRARIES})
 ament_target_dependencies(findMarkerBundlesNoKinect ${dependencies})
 
 add_executable(createMarker src/SampleMarkerCreator.cpp)
-target_link_libraries(createMarker ar_track_alvar  ${TinyXML_LIBRARIES})
+target_link_libraries(createMarker ar_track_alvar ${PCL_LIBRARIES}  ${TinyXML_LIBRARIES})
 ament_target_dependencies(createMarker ${dependencies})
 
 
