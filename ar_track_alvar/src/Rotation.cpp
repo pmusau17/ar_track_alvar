@@ -39,7 +39,7 @@ Rotation::Rotation()
 
 Rotation::Rotation(const Rotation& r)
 {
-  quaternion_mat = cv::Mat(4, 1, CV_64F);
+  quaternion_mat = cv::Mat(4, 1, CV_64F, quaternion);
   r.quaternion_mat.copyTo(quaternion_mat);
 }
 
